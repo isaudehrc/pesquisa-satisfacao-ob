@@ -13,9 +13,16 @@ import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 function App() {
   const [enviando, setEnviando] = useState(false);
-  
-  // NOVO ESTADO: Guarda a lista de quais campos o usuário esqueceu
   const [camposComErro, setCamposComErro] = useState([]); 
+  
+  // NOVO: A nossa chave mágica de reset
+  const [chaveReset, setChaveReset] = useState(0);
+
+  // NOVO: A função que o botão Limpar vai chamar
+  const handleLimpar = () => {
+    setCamposComErro([]); // Limpa a lista de erros vermelhos
+    setChaveReset(valorAntigo => valorAntigo + 1); // Força o React a recriar o formulário do zero (apagando as estrelas)
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault(); 
@@ -24,36 +31,31 @@ function App() {
     const formData = new FormData(form);
     const data = Object.fromEntries(formData.entries());
 
-    // --- 🛑 GUARITA DE INSPEÇÃO (Validação Obrigatória) ---
+    // --- 🛑 GUARITA DE INSPEÇÃO ---
     const errosEncontrados = [];
     
-    // Lista de todas as perguntas que NÃO podem ficar em branco
     const camposObrigatorios = [
-      'dataNascimento', 'sexo', 'municipio', // Seção 1
-      'cordialidade', 'clareza', 'acesso', 'tempo', 'ambiente', // Seção 2
-      'atendimento_necessidades', 'compreensao_orientacoes' // Seção 3
+      'dataNascimento', 'sexo', 'municipio', 
+      'cordialidade', 'clareza', 'acesso', 'tempo', 'ambiente', 
+      'atendimento_necessidades', 'compreensao_orientacoes' 
     ];
 
-    // Varre a lista verificando se algo está vazio ou se a bolinha não foi marcada
     camposObrigatorios.forEach(campo => {
       if (!data[campo] || data[campo].trim() === '') {
         errosEncontrados.push(campo);
       }
     });
 
-    // Regra Especial para as Estrelas (o input escondido manda '0' se não clicado)
     if (!data['satisfacao_geral_estrelas'] || data['satisfacao_geral_estrelas'] === '0') {
       errosEncontrados.push('satisfacao_geral_estrelas');
     }
 
-    // Se a guarita encontrou qualquer erro, TRAVA O ENVIO!
     if (errosEncontrados.length > 0) {
-      setCamposComErro(errosEncontrados); // Salva a lista de erros para pintar de vermelho depois
+      setCamposComErro(errosEncontrados); 
       alert("Atenção: Algumas perguntas obrigatórias não foram respondidas. Por favor, verifique o formulário.");
-      return; // O 'return' expulsa o código daqui e impede de chegar no Firebase
+      return; 
     }
 
-    // Se passou na guarita, limpa os erros antigos e segue o jogo
     setCamposComErro([]);
     setEnviando(true);
 
@@ -66,8 +68,7 @@ function App() {
       });
 
       alert("Avaliação enviada com sucesso! Muito obrigado.");
-      form.reset(); 
-      setCamposComErro([]); // Limpa os erros visuais se houver
+      handleLimpar(); // Usamos a nossa função mágica aqui também para limpar tudo após o envio!
 
     } catch (error) {
       console.error("Erro ao enviar a avaliação: ", error);
@@ -85,15 +86,12 @@ function App() {
           <img src={marcaDagua} alt="" className="w-full h-auto object-contain" />
         </div>
 
-        <form className="relative z-10" onSubmit={handleSubmit}>
+        {/* Colocamos a chave mágica aqui na tag form. Quando ela muda, tudo aqui dentro reseta! */}
+        <form key={chaveReset} className="relative z-10" onSubmit={handleSubmit} onReset={handleLimpar}>
           <Cabecalho />
-          
-          {/* Passamos a lista 'camposComErro' para os componentes saberem o que destacar */}
           <DadosGerais erros={camposComErro} />
           <AvaliacaoEquipe erros={camposComErro} />
           <TratamentoEAvaliacao erros={camposComErro} />
-          
-          {/* Sugestões continua livre de erros, pois é opcional */}
           <SugestoesEAssinatura />
 
           <div className="mt-12 flex justify-end gap-4">
@@ -101,7 +99,6 @@ function App() {
               type="reset" 
               className="text-gray-500 hover:text-red-600 font-medium px-4 transition duration-150 text-sm uppercase tracking-wider"
               disabled={enviando}
-              onClick={() => setCamposComErro([])} // Limpa os destaques vermelhos ao clicar em Limpar
             >
               Limpar
             </button>
