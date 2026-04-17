@@ -1,13 +1,18 @@
 import React from 'react';
 
-export function DadosGerais() {
+// Agora o componente recebe a lista de erros
+export function DadosGerais({ erros = [] }) {
+  
+  // Função auxiliar para saber se o campo atual está na lista de erros
+  const temErro = (campo) => erros.includes(campo);
+
   return (
     <div className="mb-8">
       <h3 className="font-bold text-gray-900 mb-4">Dados Gerais:</h3>
       
       <div className="flex flex-col gap-4 pl-4 text-gray-800">
         
-        {/* Nome */}
+        {/* Nome (Opcional - não fica vermelho) */}
         <div className="flex flex-col sm:flex-row sm:items-center gap-2">
           <label htmlFor="nome" className="font-medium text-gray-700">Nome (opcional):</label>
           <input 
@@ -20,9 +25,9 @@ export function DadosGerais() {
         </div>
 
         <div className="flex flex-wrap gap-6">
-          {/* Data de Nascimento */}
-          <div className="flex items-center gap-2">
-            <label htmlFor="dataNascimento" className="font-medium text-gray-700">Data de Nascimento:</label>
+          {/* Data de Nascimento (Obrigatório) */}
+          <div className={`flex items-center gap-2 p-1 rounded-md transition-colors ${temErro('dataNascimento') ? 'bg-red-50 border border-red-300' : ''}`}>
+            <label htmlFor="dataNascimento" className={`font-medium ${temErro('dataNascimento') ? 'text-red-600' : 'text-gray-700'}`}>Data de Nascimento:</label>
             <input 
               type="date" 
               id="dataNascimento" 
@@ -31,9 +36,9 @@ export function DadosGerais() {
             />
           </div>
 
-          {/* Sexo (Agora como Menu Suspenso / Dropdown) */}
-          <div className="flex items-center gap-2">
-            <label htmlFor="sexo" className="font-medium text-gray-700">Sexo:</label>
+          {/* Sexo (Obrigatório) */}
+          <div className={`flex items-center gap-2 p-1 rounded-md transition-colors ${temErro('sexo') ? 'bg-red-50 border border-red-300' : ''}`}>
+            <label htmlFor="sexo" className={`font-medium ${temErro('sexo') ? 'text-red-600' : 'text-gray-700'}`}>Sexo:</label>
             <select 
               id="sexo" 
               name="sexo"
@@ -47,9 +52,9 @@ export function DadosGerais() {
           </div>
         </div>
 
-        {/* Município */}
-        <div className="flex items-center gap-2">
-          <label htmlFor="municipio" className="font-medium text-gray-700">Município de residência:</label>
+        {/* Município (Obrigatório) */}
+        <div className={`flex items-center gap-2 p-1 w-full sm:w-max rounded-md transition-colors ${temErro('municipio') ? 'bg-red-50 border border-red-300' : ''}`}>
+          <label htmlFor="municipio" className={`font-medium ${temErro('municipio') ? 'text-red-600' : 'text-gray-700'}`}>Município de residência:</label>
           <input 
             type="text" 
             id="municipio" 

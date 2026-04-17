@@ -1,4 +1,4 @@
-import React, { useState } from 'react'; // Adicionado o useState para controlar a tela de "Carregando"
+import React, { useState } from 'react';
 import { Cabecalho } from './components/Cabecalho';
 import { DadosGerais } from './components/DadosGerais';
 import { AvaliacaoEquipe } from './components/AvaliacaoEquipe';
@@ -7,53 +7,77 @@ import { SugestoesEAssinatura } from './components/SugestoesEAssinatura';
 
 import marcaDagua from './assets/marca_dagua.png';
 
-// --- A MÁGICA DO BANCO DE DADOS COMEÇA AQUI ---
-// Importamos a conexão com o banco que você criou no firebase.js
+// Conexão com o Firebase
 import { db } from './firebase'; 
-// Importamos a função de "adicionar documento" (fichas) do Firebase
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore'; 
 
 function App() {
-  // Estado para controlar o botão de enviar (evitar cliques duplos)
   const [enviando, setEnviando] = useState(false);
+  
+  // NOVO ESTADO: Guarda a lista de quais campos o usuário esqueceu
+  const [camposComErro, setCamposComErro] = useState([]); 
 
-  // Esta é a função que o botão "Enviar" vai chamar
   const handleSubmit = async (e) => {
-    e.preventDefault(); // Impede a página de recarregar
-    setEnviando(true);  // Muda o botão para "Enviando..."
+    e.preventDefault(); 
+    
+    const form = e.target;
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData.entries());
+
+    // --- 🛑 GUARITA DE INSPEÇÃO (Validação Obrigatória) ---
+    const errosEncontrados = [];
+    
+    // Lista de todas as perguntas que NÃO podem ficar em branco
+    const camposObrigatorios = [
+      'dataNascimento', 'sexo', 'municipio', // Seção 1
+      'cordialidade', 'clareza', 'acesso', 'tempo', 'ambiente', // Seção 2
+      'atendimento_necessidades', 'compreensao_orientacoes' // Seção 3
+    ];
+
+    // Varre a lista verificando se algo está vazio ou se a bolinha não foi marcada
+    camposObrigatorios.forEach(campo => {
+      if (!data[campo] || data[campo].trim() === '') {
+        errosEncontrados.push(campo);
+      }
+    });
+
+    // Regra Especial para as Estrelas (o input escondido manda '0' se não clicado)
+    if (!data['satisfacao_geral_estrelas'] || data['satisfacao_geral_estrelas'] === '0') {
+      errosEncontrados.push('satisfacao_geral_estrelas');
+    }
+
+    // Se a guarita encontrou qualquer erro, TRAVA O ENVIO!
+    if (errosEncontrados.length > 0) {
+      setCamposComErro(errosEncontrados); // Salva a lista de erros para pintar de vermelho depois
+      alert("Atenção: Algumas perguntas obrigatórias não foram respondidas. Por favor, verifique o formulário.");
+      return; // O 'return' expulsa o código daqui e impede de chegar no Firebase
+    }
+
+    // Se passou na guarita, limpa os erros antigos e segue o jogo
+    setCamposComErro([]);
+    setEnviando(true);
 
     try {
-      // 1. Pegamos todos os dados que o usuário preencheu no formulário (a "Ficha")
-      const form = e.target;
-      const formData = new FormData(form);
-      const data = Object.fromEntries(formData.entries());
-
-      // 2. Damos o endereço de entrega: a pasta "fichas_avaliacao" lá no nosso banco de dados
+      // --- 🚀 ENVIO PARA O FIREBASE ---
       const colecaoFichas = collection(db, 'fichas_avaliacao');
-
-      // 3. Empacotamos tudo e jogamos na nuvem! (O addDoc faz esse envio)
-      // O serverTimestamp registra a hora exata lá no servidor do Google
       await addDoc(colecaoFichas, {
         ...data,
         data_envio: serverTimestamp() 
       });
 
-      // 4. Se deu tudo certo, avisamos o paciente e limpamos a ficha
       alert("Avaliação enviada com sucesso! Muito obrigado.");
-      form.reset(); // Limpa os campos da tela
+      form.reset(); 
+      setCamposComErro([]); // Limpa os erros visuais se houver
 
     } catch (error) {
-      // Se der algum erro (falta de internet, por exemplo), avisamos o usuário
       console.error("Erro ao enviar a avaliação: ", error);
       alert("Ops! Houve um problema ao enviar. Verifique sua conexão e tente novamente.");
     } finally {
-      // 5. Devolvemos o botão ao estado normal
       setEnviando(false);
     }
   };
 
   return (
-    // Aplicamos text-[15px] para aumentar a fonte em ~1 ponto de forma global e discreta
     <div className="min-h-screen bg-gray-200 py-10 px-4 flex justify-center font-sans text-[15px]">
       <div className="bg-white max-w-3xl w-full p-10 md:p-14 shadow-xl border border-gray-300 relative overflow-hidden">
         
@@ -61,32 +85,32 @@ function App() {
           <img src={marcaDagua} alt="" className="w-full h-auto object-contain" />
         </div>
 
-        {/* --- LIGAMOS A NOSSA FUNÇÃO MÁGICA AQUI NO onSubmit --- */}
         <form className="relative z-10" onSubmit={handleSubmit}>
           <Cabecalho />
-          <DadosGerais />
-          <AvaliacaoEquipe />
-          <TratamentoEAvaliacao />
+          
+          {/* Passamos a lista 'camposComErro' para os componentes saberem o que destacar */}
+          <DadosGerais erros={camposComErro} />
+          <AvaliacaoEquipe erros={camposComErro} />
+          <TratamentoEAvaliacao erros={camposComErro} />
+          
+          {/* Sugestões continua livre de erros, pois é opcional */}
           <SugestoesEAssinatura />
 
-          {/* Área de Botões Revisitada */}
           <div className="mt-12 flex justify-end gap-4">
-            {/* Botão Limpar */}
             <button 
               type="reset" 
               className="text-gray-500 hover:text-red-600 font-medium px-4 transition duration-150 text-sm uppercase tracking-wider"
-              disabled={enviando} // Desativa se estiver enviando
+              disabled={enviando}
+              onClick={() => setCamposComErro([])} // Limpa os destaques vermelhos ao clicar em Limpar
             >
               Limpar
             </button>
 
-            {/* Botão principal simplificado para "Enviar" */}
             <button 
               type="submit" 
               className="bg-gray-900 text-white font-bold py-3 px-12 rounded-lg hover:bg-gray-700 transition duration-150 uppercase text-sm tracking-wider shadow-md disabled:bg-gray-400 disabled:cursor-not-allowed"
-              disabled={enviando} // Desativa o botão para evitar envio duplo
+              disabled={enviando} 
             >
-              {/* O texto do botão muda se estiver processando */}
               {enviando ? "Enviando..." : "Enviar"} 
             </button>
           </div>
