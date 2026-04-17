@@ -9,8 +9,6 @@ export function Cabecalho() {
         
         {/* Lado Esquerdo - Logo Completa da Prefeitura */}
         <div className="flex-shrink-0">
-          {/* Ajustamos o tamanho para a logo ficar maior e dominar o espaço. 
-              Usamos h-24 (altura) e deixamos a largura se ajustar sozinha. */}
           <img 
             src={brasaoOuroBranco} 
             alt="Logo da Prefeitura de Ouro Branco" 
@@ -27,7 +25,8 @@ export function Cabecalho() {
       </div>
 
       <div className="text-center mt-8 relative z-10">
-        <h2 className="text-xl font-bold uppercase mb-2">Pesquisa de Satisfação dos Usuários</h2>
+        {/* Título Atualizado: Adicionando a palavra SUS ao final */}
+        <h2 className="text-xl font-bold uppercase mb-2">Pesquisa de Satisfação dos Usuários do SUS</h2>
         <h3 className="text-md font-bold text-gray-800">Avaliação de Satisfação do Usuário – Tratamento Odontológico no CEO - OB</h3>
       </div>
       
