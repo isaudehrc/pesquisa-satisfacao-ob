@@ -5,48 +5,6 @@ import { signOut, onAuthStateChanged } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
-// =======================================================================
-// COMPONENTE AUXILIAR: Desenha a pergunta EXATAMENTE como no formulário
-// =======================================================================
-const PerguntaRadio = ({ pergunta, resposta, opcoesOriginais }) => {
-  // Garantia: Se a resposta do banco não estiver na lista original, ela aparece mesmo assim
-  const opcoesNaTela = (resposta && !opcoesOriginais.includes(resposta)) 
-    ? [...opcoesOriginais, resposta] 
-    : opcoesOriginais;
-  
-  return (
-    <div className="mb-6">
-      <p className="text-[13px] font-bold text-gray-900 mb-3">{pergunta}</p>
-      <div className="flex flex-wrap gap-4">
-        {opcoesNaTela.map(opcao => {
-          const selecionado = resposta === opcao;
-          return (
-            <div 
-              key={opcao} 
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-all ${
-                selecionado 
-                  ? 'bg-blue-50 border-blue-500 text-blue-900 shadow-sm' 
-                  : 'bg-white border-gray-200 text-gray-500 opacity-60'
-              }`}
-            >
-              {/* Bolinha do Radio */}
-              <div className={`w-5 h-5 rounded-full flex items-center justify-center border-2 ${
-                selecionado ? 'border-blue-600 bg-blue-600' : 'border-gray-300 bg-white'
-              }`}>
-                {selecionado && <div className="w-2 h-2 bg-white rounded-full"></div>}
-              </div>
-              <span className="text-xs font-bold">{opcao}</span>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-};
-
-// =======================================================================
-// O PAINEL PRINCIPAL
-// =======================================================================
 export function Dashboard() {
   const [fichas, setFichas] = useState([]);
   const [carregando, setCarregando] = useState(true);
@@ -77,6 +35,16 @@ export function Dashboard() {
     signOut(auth).then(() => navigate('/login'));
   };
 
+  // Funções de tradução para mostrar o texto bonito em vez do valor técnico do banco
+  const traduzirValor = (valor) => {
+    const mapas = {
+      'excelente': 'Excelente', 'muito_bom': 'Muito Bom', 'bom': 'Bom', 'regular': 'Regular', 'ruim': 'Ruim',
+      'totalmente': 'Atendeu totalmente às suas necessidades', 'parcialmente': 'Atendeu parcialmente', 'nao_atendeu': 'Não atendeu',
+      'sim': 'Sim', 'nao': 'Não'
+    };
+    return mapas[valor] || valor;
+  };
+
   const mediaEstrelas = fichas.length > 0 
     ? (fichas.reduce((acc, ficha) => acc + Number(ficha.satisfacao_geral_estrelas || 0), 0) / fichas.length).toFixed(1)
     : 0;
@@ -88,31 +56,6 @@ export function Dashboard() {
     { nota: '2 Estrelas', quantidade: fichas.filter(f => f.satisfacao_geral_estrelas === '2').length },
     { nota: '1 Estrela',  quantidade: fichas.filter(f => f.satisfacao_geral_estrelas === '1').length },
   ];
-
-  const calcularIdade = (dataNascimento) => {
-    if (!dataNascimento) return "N/I";
-    const hoje = new Date();
-    const nascimento = new Date(dataNascimento);
-    let idade = hoje.getFullYear() - nascimento.getFullYear();
-    const mes = hoje.getMonth() - nascimento.getMonth();
-    if (mes < 0 || (mes === 0 && hoje.getDate() < nascimento.getDate())) idade--;
-    return idade;
-  };
-
-  const idadesValidas = fichas.map(f => calcularIdade(f.dataNascimento)).filter(i => i !== "N/I" && !isNaN(i));
-  let perfilPrincipal = "Não avaliado";
-  let mediaIdade = 0;
-
-  if (idadesValidas.length > 0) {
-    const somaIdades = idadesValidas.reduce((a, b) => a + b, 0);
-    mediaIdade = Math.round(somaIdades / idadesValidas.length);
-    const grupos = {
-      "Jovens (Até 19)": idadesValidas.filter(i => i <= 19).length,
-      "Adultos (20 a 59)": idadesValidas.filter(i => i >= 20 && i <= 59).length,
-      "Idosos (60+)": idadesValidas.filter(i => i >= 60).length,
-    };
-    perfilPrincipal = Object.keys(grupos).reduce((a, b) => grupos[a] > grupos[b] ? a : b);
-  }
 
   if (carregando) return <div className="p-10 text-center text-gray-500 font-medium tracking-widest">SINCRONIZANDO...</div>;
 
@@ -137,7 +80,6 @@ export function Dashboard() {
             <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-2">Total de Avaliações</span>
             <span className="text-5xl font-black text-gray-900">{fichas.length}</span>
           </div>
-
           <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 flex flex-col items-center">
             <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-2">Média de Satisfação</span>
             <div className="flex items-baseline gap-2">
@@ -145,33 +87,16 @@ export function Dashboard() {
               <span className="text-xl text-yellow-500">★</span>
             </div>
           </div>
-
-          <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 flex flex-col items-center relative overflow-hidden">
-            <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-2">Público Principal</span>
-            <span className="text-2xl font-black text-blue-600 uppercase text-center">{perfilPrincipal}</span>
-            {idadesValidas.length > 0 && (
-              <span className="text-[10px] text-gray-400 font-bold uppercase mt-2 tracking-widest">Idade Média: {mediaIdade} anos</span>
-            )}
+          <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 flex flex-col items-center">
+            <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-2">Status do Sistema</span>
+            <span className="text-lg font-black text-green-600 uppercase">Online</span>
           </div>
         </div>
 
-        {/* GRÁFICO E TABELA */}
-        <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 h-64 mb-8">
-          <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-4 block text-center">Distribuição de Notas (Volume)</span>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={distribuicaoNotas} layout="vertical" margin={{ top: 0, right: 0, left: 10, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f0f0f0" />
-              <XAxis type="number" hide />
-              <YAxis dataKey="nota" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#6b7280' }} width={60} />
-              <Tooltip cursor={{ fill: '#f9fafb' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-              <Bar dataKey="quantidade" fill="#1f2937" radius={[0, 4, 4, 0]} barSize={16} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-
+        {/* TABELA DE REGISTROS */}
         <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200">
           <div className="bg-gray-900 p-4">
-            <h2 className="text-white text-xs font-bold uppercase tracking-widest">Histórico de Fichas</h2>
+            <h2 className="text-white text-xs font-bold uppercase tracking-widest">Últimos Registros</h2>
           </div>
           <table className="w-full text-left text-sm">
             <thead className="bg-gray-50 text-gray-500 uppercase text-[10px] tracking-widest font-bold border-b">
@@ -208,144 +133,100 @@ export function Dashboard() {
       </div>
 
       {/* ========================================================== */}
-      {/* RÉPLICA EXATA DO FORMULÁRIO ORIGINAL */}
+      {/* MODAL DE VISUALIZAÇÃO LIMPA (1-5) */}
       {/* ========================================================== */}
       {fichaAberta && (
-        <div className="fixed inset-0 bg-gray-900 bg-opacity-80 z-50 flex justify-center items-center p-4 md:p-10 backdrop-blur-sm overflow-y-auto">
-          
-          <div className="bg-white max-w-3xl w-full rounded-xl shadow-2xl relative mt-auto mb-auto overflow-hidden">
+        <div className="fixed inset-0 bg-gray-900 bg-opacity-80 z-50 flex justify-center items-center p-4 backdrop-blur-sm overflow-y-auto">
+          <div className="bg-white max-w-2xl w-full rounded-xl shadow-2xl relative my-8 overflow-hidden">
             
             <button 
               onClick={() => setFichaAberta(null)}
               className="absolute top-4 right-4 bg-gray-200 text-gray-600 w-10 h-10 rounded-full hover:bg-red-500 hover:text-white transition-all font-bold text-xl z-20 flex items-center justify-center shadow-md"
-              title="Fechar Ficha"
             >
               ✕
             </button>
 
-            <div className="bg-gray-50 border-b border-gray-200 p-8 text-center">
-              <h2 className="text-2xl font-black text-gray-900 uppercase tracking-widest">Ficha de Avaliação</h2>
-              <div className="mt-4 inline-block bg-blue-100 text-blue-800 px-4 py-1 rounded-md text-xs font-black uppercase tracking-[0.2em] border border-blue-200 shadow-sm">
-                Modo Leitura • ID: {fichaAberta.id.substring(0, 8)}...
-              </div>
+            <div className="bg-gray-50 border-b p-6 text-center">
+              <h2 className="text-xl font-black text-gray-900 uppercase tracking-widest">Detalhes da Avaliação</h2>
             </div>
 
-            <div className="p-8 md:p-12">
+            <div className="p-8 space-y-8">
               
               {/* 1. DADOS GERAIS */}
-              <div className="mb-12">
-                <div className="bg-gray-900 text-white font-bold uppercase text-xs tracking-[0.2em] p-3 mb-6 rounded shadow-sm">
-                  1. Dados Gerais
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <section>
+                <h3 className="text-lg font-extrabold text-black mb-4 tracking-tight border-l-4 border-gray-900 pl-3">1. Dados Gerais</h3>
+                <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
                   <div>
-                    <label className="block text-xs font-black text-gray-400 uppercase mb-2 tracking-widest">Nome do Paciente</label>
-                    <input disabled value={fichaAberta.nome || "Não informado"} className="w-full bg-gray-50 border-2 border-gray-200 rounded-lg p-3 text-sm text-gray-700 font-bold uppercase cursor-not-allowed" />
+                    <p className="text-[10px] font-bold text-gray-400 uppercase">Nome</p>
+                    <p className="text-sm font-bold text-gray-800 uppercase">{fichaAberta.nome || "Não informado"}</p>
                   </div>
                   <div>
-                    <label className="block text-xs font-black text-gray-400 uppercase mb-2 tracking-widest">Data de Nascimento</label>
-                    <input disabled type="date" value={fichaAberta.dataNascimento || ""} className="w-full bg-gray-50 border-2 border-gray-200 rounded-lg p-3 text-sm text-gray-700 font-bold cursor-not-allowed" />
+                    <p className="text-[10px] font-bold text-gray-400 uppercase">Município</p>
+                    <p className="text-sm font-bold text-gray-800 uppercase">{fichaAberta.municipio || "Não informado"}</p>
                   </div>
                   <div>
-                    <label className="block text-xs font-black text-gray-400 uppercase mb-2 tracking-widest">Sexo</label>
-                    <input disabled value={fichaAberta.sexo || "Não informado"} className="w-full bg-gray-50 border-2 border-gray-200 rounded-lg p-3 text-sm text-gray-700 font-bold uppercase cursor-not-allowed" />
+                    <p className="text-[10px] font-bold text-gray-400 uppercase">Data Nasc.</p>
+                    <p className="text-sm font-bold text-gray-800">{fichaAberta.dataNascimento || "N/I"}</p>
                   </div>
                   <div>
-                    <label className="block text-xs font-black text-gray-400 uppercase mb-2 tracking-widest">Município</label>
-                    <input disabled value={fichaAberta.municipio || "Não informado"} className="w-full bg-gray-50 border-2 border-gray-200 rounded-lg p-3 text-sm text-gray-700 font-bold uppercase cursor-not-allowed" />
+                    <p className="text-[10px] font-bold text-gray-400 uppercase">Sexo</p>
+                    <p className="text-sm font-bold text-gray-800 uppercase">{fichaAberta.sexo || "N/I"}</p>
                   </div>
                 </div>
-              </div>
+              </section>
 
-              {/* 2. AVALIAÇÃO DA EQUIPE */}
-              <div className="mb-12">
-                <div className="bg-gray-900 text-white font-bold uppercase text-xs tracking-[0.2em] p-3 mb-6 rounded shadow-sm">
-                  2. Avaliação da Equipe e Atendimento
+              {/* 2. ATENDIMENTO DA EQUIPE */}
+              <section>
+                <h3 className="text-lg font-extrabold text-black mb-4 tracking-tight border-l-4 border-gray-900 pl-3">2. Sobre o Atendimento da Equipe</h3>
+                <div className="space-y-3">
+                  {[
+                    { label: 'Cordialidade e respeito da equipe', val: fichaAberta.cordialidade },
+                    { label: 'Clareza das informações recebidas', val: fichaAberta.clareza },
+                    { label: 'Facilidade de acesso à unidade', val: fichaAberta.acesso },
+                    { label: 'Tempo de espera para início', val: fichaAberta.tempo },
+                    { label: 'Condições do ambiente físico', val: fichaAberta.ambiente }
+                  ].map((item, i) => (
+                    <div key={i} className="flex justify-between items-center p-3 bg-white border border-gray-100 rounded shadow-sm">
+                      <span className="text-xs text-gray-600 font-medium">{item.label}</span>
+                      <span className="text-xs font-black text-blue-700 uppercase">{traduzirValor(item.val)}</span>
+                    </div>
+                  ))}
                 </div>
-                <div className="bg-white border-2 border-gray-100 rounded-xl p-6 shadow-sm">
-                  <PerguntaRadio 
-                    pergunta="Como você avalia a cordialidade e o respeito da equipe (recepção e dentistas)?" 
-                    resposta={fichaAberta.cordialidade} 
-                    opcoesOriginais={["Ótimo", "Bom", "Regular", "Ruim", "Péssimo"]}
-                  />
-                  <div className="h-px bg-gray-100 w-full my-6"></div>
-                  <PerguntaRadio 
-                    pergunta="As explicações do dentista sobre o seu tratamento foram claras?" 
-                    resposta={fichaAberta.clareza} 
-                    opcoesOriginais={["Sim", "Parcialmente", "Não"]}
-                  />
-                </div>
-              </div>
+              </section>
 
-              {/* 3. TRATAMENTO E AVALIAÇÃO */}
-              <div className="mb-12">
-                <div className="bg-gray-900 text-white font-bold uppercase text-xs tracking-[0.2em] p-3 mb-6 rounded shadow-sm">
-                  3. Tratamento e Avaliação Geral
-                </div>
-                <div className="bg-white border-2 border-gray-100 rounded-xl p-6 shadow-sm mb-6">
-                  <PerguntaRadio 
-                    pergunta="Como você avalia a facilidade de acesso ao CEO?" 
-                    resposta={fichaAberta.acesso} 
-                    opcoesOriginais={["Ótimo", "Bom", "Regular", "Ruim", "Péssimo"]}
-                  />
-                  <div className="h-px bg-gray-100 w-full my-6"></div>
-                  <PerguntaRadio 
-                    pergunta="Como você avalia o tempo de espera para o atendimento?" 
-                    resposta={fichaAberta.tempo} 
-                    opcoesOriginais={["Ótimo", "Bom", "Regular", "Ruim", "Péssimo"]}
-                  />
-                  <div className="h-px bg-gray-100 w-full my-6"></div>
-                  <PerguntaRadio 
-                    pergunta="Como você avalia o ambiente do CEO (higiene e conforto)?" 
-                    resposta={fichaAberta.ambiente} 
-                    opcoesOriginais={["Ótimo", "Bom", "Regular", "Ruim", "Péssimo"]}
-                  />
-                  <div className="h-px bg-gray-100 w-full my-6"></div>
-                  <PerguntaRadio 
-                    pergunta="O tratamento atendeu às suas necessidades odontológicas?" 
-                    resposta={fichaAberta.atendimento_necessidades} 
-                    opcoesOriginais={["Sim", "Parcialmente", "Não"]}
-                  />
-                  <div className="h-px bg-gray-100 w-full my-6"></div>
-                  <PerguntaRadio 
-                    pergunta="Você compreendeu as orientações sobre cuidados após o tratamento?" 
-                    resposta={fichaAberta.compreensao_orientacoes} 
-                    opcoesOriginais={["Sim", "Parcialmente", "Não"]}
-                  />
-                </div>
-
-                <div className="bg-gray-50 border-2 border-gray-200 rounded-xl p-8 text-center shadow-inner">
-                  <p className="font-black text-gray-900 uppercase text-sm mb-6 tracking-widest">Grau de Satisfação Geral</p>
-                  <div className="flex justify-center gap-3">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <svg 
-                        key={star} 
-                        className={`w-12 h-12 drop-shadow-md transition-colors ${star <= Number(fichaAberta.satisfacao_geral_estrelas || 0) ? 'text-yellow-400' : 'text-gray-300'}`}
-                        fill="currentColor" 
-                        viewBox="0 0 24 24"
-                      >
-                        <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
-                      </svg>
-                    ))}
+              {/* 3. TRATAMENTO REALIZADO */}
+              <section>
+                <h3 className="text-lg font-extrabold text-black mb-4 tracking-tight border-l-4 border-gray-900 pl-3">3. Sobre o Tratamento Realizado</h3>
+                <div className="space-y-4">
+                  <div className="p-3 bg-white border border-gray-100 rounded shadow-sm">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">O tratamento odontológico recebido:</p>
+                    <p className="text-xs font-black text-blue-700 uppercase">{traduzirValor(fichaAberta.atendimento_necessidades)}</p>
                   </div>
-                  <p className="text-[10px] font-black text-gray-400 uppercase mt-4 tracking-[0.3em]">
-                    {fichaAberta.satisfacao_geral_estrelas} de 5 Estrelas
-                  </p>
+                  <div className="p-3 bg-white border border-gray-100 rounded shadow-sm">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Compreendeu as orientações pós-tratamento?</p>
+                    <p className="text-xs font-black text-blue-700 uppercase">{traduzirValor(fichaAberta.compreensao_orientacoes)}</p>
+                  </div>
                 </div>
-              </div>
+              </section>
 
-              {/* 4. SUGESTÕES */}
-              <div>
-                <div className="bg-gray-900 text-white font-bold uppercase text-xs tracking-[0.2em] p-3 mb-6 rounded shadow-sm">
-                  4. Observações e Sugestões
+              {/* 4. AVALIAÇÃO GERAL */}
+              <section>
+                <h3 className="text-lg font-extrabold text-black mb-4 tracking-tight border-l-4 border-gray-900 pl-3">4. Avaliação Geral e Recomendação</h3>
+                <div className="flex items-center justify-center gap-2 p-6 bg-yellow-50 rounded-xl border border-yellow-100">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <span key={star} className={`text-4xl ${star <= Number(fichaAberta.satisfacao_geral_estrelas) ? "text-yellow-400" : "text-gray-200"}`}>★</span>
+                  ))}
+                  <span className="ml-4 font-black text-gray-900">{fichaAberta.satisfacao_geral_estrelas}/5</span>
                 </div>
-                <textarea 
-                  disabled 
-                  value={fichaAberta.sugestoes || ""}
-                  className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl p-6 text-sm text-gray-700 font-bold min-h-[120px] cursor-not-allowed italic"
-                  placeholder="Nenhum comentário adicional registrado."
-                />
-              </div>
+              </section>
+
+              {/* 5. OBSERVAÇÕES */}
+              <section>
+                <h3 className="text-lg font-extrabold text-black mb-4 tracking-tight border-l-4 border-gray-900 pl-3">5. Observações e Sugestões</h3>
+                <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 italic text-sm text-gray-700 min-h-[80px]">
+                  {fichaAberta.sugestoes || "Nenhuma observação registrada."}
+                </div>
+              </section>
 
             </div>
           </div>
