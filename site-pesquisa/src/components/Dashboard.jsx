@@ -6,16 +6,20 @@ import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 // =======================================================================
-// COMPONENTE AUXILIAR: Desenha a pergunta exatamente como no formulário
+// COMPONENTE AUXILIAR: Desenha a pergunta com as opções EXATAS do original
 // =======================================================================
-const PerguntaRadio = ({ pergunta, resposta }) => {
-  const opcoes = ["Ótimo", "Bom", "Regular", "Ruim", "Péssimo"];
+const PerguntaRadio = ({ pergunta, resposta, opcoesOriginais }) => {
+  // Blindagem: Se a resposta salva no banco não estiver na lista (ex: ficha antiga),
+  // adicionamos ela na tela temporariamente para não ocultar a informação da gestora.
+  const opcoesNaTela = (resposta && !opcoesOriginais.includes(resposta)) 
+    ? [...opcoesOriginais, resposta] 
+    : opcoesOriginais;
   
   return (
     <div className="mb-6">
       <p className="text-sm font-bold text-gray-800 mb-3">{pergunta}</p>
       <div className="flex flex-wrap gap-4">
-        {opcoes.map(opcao => {
+        {opcoesNaTela.map(opcao => {
           const selecionado = resposta === opcao;
           return (
             <div 
@@ -212,7 +216,6 @@ export function Dashboard() {
           
           <div className="bg-white max-w-4xl w-full rounded-xl shadow-2xl relative mt-auto mb-auto overflow-hidden">
             
-            {/* Botão Fechar Flutuante */}
             <button 
               onClick={() => setFichaAberta(null)}
               className="absolute top-4 right-4 bg-gray-200 text-gray-600 w-10 h-10 rounded-full hover:bg-red-500 hover:text-white transition-all font-bold text-xl z-20 flex items-center justify-center shadow-md"
@@ -221,7 +224,6 @@ export function Dashboard() {
               ✕
             </button>
 
-            {/* Cabeçalho da Ficha */}
             <div className="bg-gray-50 border-b border-gray-200 p-8 text-center">
               <h2 className="text-2xl font-black text-gray-900 uppercase tracking-widest">Pesquisa de Satisfação</h2>
               <p className="text-sm font-bold text-gray-500 uppercase mt-1">Centro de Especialidades Odontológicas</p>
@@ -266,11 +268,13 @@ export function Dashboard() {
                   <PerguntaRadio 
                     pergunta="Como você avalia a cordialidade e o respeito da equipe (recepção e dentistas)?" 
                     resposta={fichaAberta.cordialidade} 
+                    opcoesOriginais={["Excelente", "Boa", "Regular", "Ruim"]}
                   />
                   <div className="h-px bg-gray-100 w-full my-6"></div>
                   <PerguntaRadio 
                     pergunta="Como você avalia a clareza das explicações fornecidas pelo dentista sobre o seu tratamento?" 
                     resposta={fichaAberta.clareza} 
+                    opcoesOriginais={["Muito claras", "Claras", "Pouco claras", "Não explicou"]}
                   />
                 </div>
               </div>
@@ -281,18 +285,37 @@ export function Dashboard() {
                   3. Tratamento e Avaliação Geral
                 </div>
                 <div className="bg-white border-2 border-gray-100 rounded-xl p-6 shadow-sm mb-6">
-                  <PerguntaRadio pergunta="Como você avalia a facilidade de acesso ao CEO?" resposta={fichaAberta.acesso} />
+                  <PerguntaRadio 
+                    pergunta="Como você avalia a facilidade de acesso ao CEO?" 
+                    resposta={fichaAberta.acesso} 
+                    opcoesOriginais={["Muito fácil", "Fácil", "Difícil", "Muito difícil"]}
+                  />
                   <div className="h-px bg-gray-100 w-full my-6"></div>
-                  <PerguntaRadio pergunta="Como você avalia o tempo de espera?" resposta={fichaAberta.tempo} />
+                  <PerguntaRadio 
+                    pergunta="Como você avalia o tempo de espera?" 
+                    resposta={fichaAberta.tempo} 
+                    opcoesOriginais={["Menos de 15 min", "15 a 30 min", "30 a 60 min", "Mais de 1 hora"]}
+                  />
                   <div className="h-px bg-gray-100 w-full my-6"></div>
-                  <PerguntaRadio pergunta="Como você avalia o ambiente do CEO (higiene e conforto)?" resposta={fichaAberta.ambiente} />
+                  <PerguntaRadio 
+                    pergunta="Como você avalia o ambiente do CEO (higiene e conforto)?" 
+                    resposta={fichaAberta.ambiente} 
+                    opcoesOriginais={["Excelente", "Bom", "Regular", "Ruim"]}
+                  />
                   <div className="h-px bg-gray-100 w-full my-6"></div>
-                  <PerguntaRadio pergunta="Como você avalia o atendimento às suas necessidades odontológicas?" resposta={fichaAberta.atendimento_necessidades} />
+                  <PerguntaRadio 
+                    pergunta="Como você avalia o atendimento às suas necessidades odontológicas?" 
+                    resposta={fichaAberta.atendimento_necessidades} 
+                    opcoesOriginais={["Totalmente", "Parcialmente", "Não atendeu"]}
+                  />
                   <div className="h-px bg-gray-100 w-full my-6"></div>
-                  <PerguntaRadio pergunta="Como você avalia a sua compreensão sobre os cuidados pós-tratamento?" resposta={fichaAberta.compreensao_orientacoes} />
+                  <PerguntaRadio 
+                    pergunta="Como você avalia a sua compreensão sobre os cuidados pós-tratamento?" 
+                    resposta={fichaAberta.compreensao_orientacoes} 
+                    opcoesOriginais={["Compreendi totalmente", "Compreendi parcialmente", "Não compreendi"]}
+                  />
                 </div>
 
-                {/* Bloco Exclusivo das Estrelas */}
                 <div className="bg-gray-50 border-2 border-gray-200 rounded-xl p-8 text-center shadow-inner">
                   <p className="font-black text-gray-900 uppercase text-lg mb-6 tracking-widest">Grau de Satisfação Geral</p>
                   <div className="flex justify-center gap-3">
