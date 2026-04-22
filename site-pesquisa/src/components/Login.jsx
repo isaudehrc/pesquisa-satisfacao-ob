@@ -1,59 +1,68 @@
 import React from 'react';
-// IMPORTANTE: Adicionamos o 'db' (banco de dados) na importação do firebase
 import { auth, provider, db } from '../firebase'; 
 import { signInWithPopup } from 'firebase/auth';
-// IMPORTANTE: Adicionamos as ferramentas para ler o banco de dados
-import { doc, getDoc } from 'firebase/firestore'; 
+import { doc, getDoc, setDoc } from 'firebase/firestore'; 
 import { useNavigate, Link } from 'react-router-dom';
 
 export function Login() {
   const navigate = useNavigate();
 
+  // =================================================================
+  // CONFIGURAÇÃO DE INFRAESTRUTURA (A Lista de Ouro)
+  // =================================================================
+  const LISTA_VIP = [
+    "informatica.saude.pmob.mg@gmail.com",
+    "odontopmob@gmail.com",
+    "vitor.sanson@gmail.com" // Seu e-mail de administrador
+  ];
+
   const fazerLogin = async () => {
     try {
-      // =================================================================
-      // PASSO 1: AUTENTICAÇÃO (O Google confirma quem a pessoa é)
-      // =================================================================
+      // 1. Autenticação via Google
       const result = await signInWithPopup(auth, provider);
-      
-      // Aqui está a variável super evidenciada recebendo o e-mail:
-      const emailTentandoAcesso = result.user.email;
-      
-      console.log("Detectamos um login do e-mail:", emailTentandoAcesso);
+      const emailLogado = result.user.email;
 
-      // =================================================================
-      // PASSO 2: BUSCA DO CRACHÁ (Procurar o e-mail no Banco de Dados)
-      // =================================================================
-      // Vamos na coleção "usuarios_autorizados" procurar um documento que tenha o exato nome do e-mail
-      const referenciaDoCracha = doc(db, 'usuarios_autorizados', emailTentandoAcesso);
-      const crachaEncontrado = await getDoc(referenciaDoCracha);
+      console.log("🔒 Tentativa de acesso:", emailLogado);
 
-      // =================================================================
-      // PASSO 3: O GRANDE TESTE (A Autorização)
-      // =================================================================
-      if (crachaEncontrado.exists() && crachaEncontrado.data().ativo === true) {
-        
-        // SUCESSO: Tem o crachá e está ativo!
-        console.log("Acesso Liberado para:", emailTentandoAcesso);
+      // 2. A Mágica do Auto-Provisionamento (O que você pediu)
+      // Se o e-mail estiver na nossa Lista de Ouro, garantimos que ele exista no Banco
+      if (LISTA_VIP.includes(emailLogado)) {
+        const docRef = doc(db, "usuarios_autorizados", emailLogado);
+        const docSnap = await getDoc(docRef);
+
+        // Se não existir "pasta" (documento) para ele ainda, o código cria agora!
+        if (!docSnap.exists()) {
+          console.log("🛠️ Criando registro automático para novo administrador...");
+          await setDoc(docRef, {
+            email: emailLogado,
+            ativo: true,
+            permissao: "admin",
+            data_cadastro: new Date()
+          });
+        }
+
+        // Se existir mas estiver desativado por algum motivo, barramos aqui
+        if (docSnap.exists() && docSnap.data().ativo === false) {
+          await auth.signOut();
+          alert("Atenção: Seu acesso foi desativado temporariamente. Contate o suporte.");
+          return;
+        }
+
+        // Tudo certo! Entra no Dashboard
         navigate('/dashboard');
-        
+
       } else {
-        
-        // FALHA: E-mail não está na lista ou foi desativado (ativo = false)
-        // Ação imediata: Derrubar a sessão do Google para proteger o sistema
+        // Se o e-mail NÃO estiver na Lista de Ouro
         await auth.signOut(); 
-        
-        // Alerta elegante e claro para o usuário:
-        alert(`ACESSO NEGADO!\n\nO e-mail "${emailTentandoAcesso}" não possui autorização para acessar o painel do CEO.\n\nSolicite a liberação ao administrador do sistema.`);
+        alert(`ACESSO NEGADO!\n\nO e-mail "${emailLogado}" não está na lista de administradores do CEO Ouro Branco.`);
       }
 
     } catch (error) {
       console.error("Erro detalhado:", error.code);
       if (error.code === 'auth/unauthorized-domain') {
-        alert("Erro: Domínio não autorizado no Firebase. Adicione o link da Vercel no Console do Firebase.");
+        alert("Erro: Domínio não autorizado. Adicione o link da Vercel no Console do Firebase.");
       } else if (error.code !== 'auth/popup-closed-by-user') {
-        // Ignora o erro se o usuário apenas fechar a janelinha do Google de propósito
-        alert("Falha no login. Verifique se o popup não foi bloqueado pelo navegador.");
+        alert("Falha no login. Verifique sua conexão ou se o popup foi bloqueado.");
       }
     }
   };
@@ -68,7 +77,6 @@ export function Login() {
           onClick={fazerLogin}
           className="w-full flex items-center justify-center gap-3 bg-white border-2 border-gray-900 py-3 px-4 rounded-lg font-bold text-gray-900 hover:bg-gray-900 hover:text-white transition-all shadow-md mb-6"
         >
-          {/* SVG do Google embutido para nunca falhar o ícone */}
           <svg className="w-5 h-5" viewBox="0 0 24 24">
             <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
             <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-1 .67-2.28 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
