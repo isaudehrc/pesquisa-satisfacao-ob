@@ -1,68 +1,68 @@
 import React from 'react';
 
-// Agora o componente recebe a lista de erros
-export function DadosGerais({ erros = [] }) {
-  
-  // Função auxiliar para saber se o campo atual está na lista de erros
-  const temErro = (campo) => erros.includes(campo);
+export function DadosGerais({ formData, setFormData }) {
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
 
   return (
     <div className="mb-8">
-      <h3 className="font-bold text-gray-900 mb-4">Dados Gerais:</h3>
-      
-      <div className="flex flex-col gap-4 pl-4 text-gray-800">
-        
-        {/* Nome (Opcional - não fica vermelho) */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-          <label htmlFor="nome" className="font-medium text-gray-700">Nome (opcional):</label>
-          <input 
-            type="text" 
-            id="nome" 
+      {/* Título Padronizado: 1. Dados Gerais */}
+      <h3 className="text-lg font-extrabold text-black mb-4 tracking-tight">
+        1. Dados Gerais
+      </h3>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-bold text-gray-800 mb-1">Nome Completo</label>
+          <input
+            type="text"
             name="nome"
-            placeholder="Seu nome completo"
-            className="border-b border-gray-500 focus:outline-none focus:border-black w-full sm:w-80 px-1 bg-transparent placeholder:text-gray-300"
+            value={formData.nome || ''}
+            onChange={handleChange}
+            className="w-full border border-gray-300 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-900"
+            placeholder="Digite seu nome"
           />
         </div>
 
-        <div className="flex flex-wrap gap-6">
-          {/* Data de Nascimento (Obrigatório) */}
-          <div className={`flex items-center gap-2 p-1 rounded-md transition-colors ${temErro('dataNascimento') ? 'bg-red-50 border border-red-300' : ''}`}>
-            <label htmlFor="dataNascimento" className={`font-medium ${temErro('dataNascimento') ? 'text-red-600' : 'text-gray-700'}`}>Data de Nascimento:</label>
-            <input 
-              type="date" 
-              id="dataNascimento" 
-              name="dataNascimento"
-              className="border-b border-gray-500 focus:outline-none focus:border-black px-1 bg-transparent cursor-pointer"
-            />
-          </div>
-
-          {/* Sexo (Obrigatório) */}
-          <div className={`flex items-center gap-2 p-1 rounded-md transition-colors ${temErro('sexo') ? 'bg-red-50 border border-red-300' : ''}`}>
-            <label htmlFor="sexo" className={`font-medium ${temErro('sexo') ? 'text-red-600' : 'text-gray-700'}`}>Sexo:</label>
-            <select 
-              id="sexo" 
-              name="sexo"
-              className="border-b border-gray-500 focus:outline-none focus:border-black px-1 pb-1 bg-transparent cursor-pointer text-gray-800"
-            >
-              <option value="" className="text-gray-400">Selecione...</option>
-              <option value="feminino">Feminino</option>
-              <option value="masculino">Masculino</option>
-              <option value="outro">Outro</option>
-            </select>
-          </div>
+        <div>
+          <label className="block text-sm font-bold text-gray-800 mb-1">Data de Nascimento</label>
+          <input
+            type="date"
+            name="dataNascimento"
+            value={formData.dataNascimento || ''}
+            onChange={handleChange}
+            className="w-full border border-gray-300 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-900"
+          />
         </div>
 
-        {/* Município (Obrigatório) */}
-        <div className={`flex items-center gap-2 p-1 w-full sm:w-max rounded-md transition-colors ${temErro('municipio') ? 'bg-red-50 border border-red-300' : ''}`}>
-          <label htmlFor="municipio" className={`font-medium ${temErro('municipio') ? 'text-red-600' : 'text-gray-700'}`}>Município de residência:</label>
-          <input 
-            type="text" 
-            id="municipio" 
+        <div>
+          <label className="block text-sm font-bold text-gray-800 mb-1">Sexo</label>
+          <select
+            name="sexo"
+            value={formData.sexo || ''}
+            onChange={handleChange}
+            className="w-full border border-gray-300 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-900"
+          >
+            <option value="">Selecione...</option>
+            <option value="Masculino">Masculino</option>
+            <option value="Feminino">Feminino</option>
+            <option value="Outro">Outro</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-bold text-gray-800 mb-1">Município de Residência</label>
+          <input
+            type="text"
             name="municipio"
-            className="border-b border-gray-500 focus:outline-none focus:border-black w-full sm:w-64 px-1 bg-transparent"
+            value={formData.municipio || ''}
+            onChange={handleChange}
+            className="w-full border border-gray-300 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-900"
+            placeholder="Ex: Ouro Branco"
           />
         </div>
-
       </div>
     </div>
   );

@@ -1,23 +1,35 @@
 import React from 'react';
 
-export function SugestoesEAssinatura() {
+export function SugestoesEAssinatura({ formData, setFormData }) {
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
   return (
-    <div className="border-t border-gray-300 pt-6 mt-6">
-      <div className="mb-4">
-        {/* Navegação Guiada: Mantendo a hierarquia de título padrão da V2 */}
-        <h3 className="text-lg font-extrabold text-black mb-4 tracking-tight">4. Sugestões ou Comentários</h3>
-        <textarea 
-          id="sugestoes" 
-          name="sugestoes"
-          rows="5"
-          placeholder="Espaço reservado para suas críticas, elogios ou sugestões..."
-          className="w-full p-4 border border-gray-300 bg-gray-50 focus:outline-none focus:border-black resize-none rounded-md text-gray-800 placeholder:text-gray-400 shadow-sm"
-        />
-      </div>
-      {/* A frase de impacto focada na Saúde Bucal */}
-      <p className="text-[12px] text-gray-500 italic pl-1">
-        * Sua opinião nos ajuda a construir mais sorrisos e a melhorar a saúde bucal em Ouro Branco.
+    <div className="border-t border-gray-300 pt-6 mb-8">
+      {/* Título Padronizado: 5 */}
+      <h3 className="text-lg font-extrabold text-black mb-4 tracking-tight">
+        5. Observações e Sugestões
+      </h3>
+      
+      <p className="text-sm text-gray-800 mb-2 font-bold">
+        Tem alguma sugestão, elogio ou reclamação que gostaria de deixar? (Opcional)
       </p>
+      <textarea
+        name="sugestoes"
+        value={formData.sugestoes || ''}
+        onChange={handleChange}
+        rows="4"
+        className="w-full border border-gray-400 p-3 rounded-md text-sm text-gray-800 bg-white resize-none focus:outline-none focus:ring-2 focus:ring-gray-900 mb-6"
+        placeholder="Digite sua mensagem aqui..."
+      />
+
+      <div className="bg-gray-50 border border-gray-200 p-4 rounded-lg shadow-inner">
+        <p className="text-sm text-gray-600 font-bold text-center uppercase tracking-widest">
+          Agradecemos sua participação! Sua opinião é fundamental para a melhoria do CEO Ouro Branco.
+        </p>
+      </div>
     </div>
   );
 }
