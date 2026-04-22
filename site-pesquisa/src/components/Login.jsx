@@ -1,13 +1,16 @@
 import React, { useState } from 'react';
+import { db } from '../firebase'; // Importamos o banco de dados
+import { doc, getDoc, setDoc } from 'firebase/firestore'; // Ferramentas de escrita/leitura
 import { useNavigate, Link } from 'react-router-dom';
 
 export function Login() {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
+  const [carregando, setCarregando] = useState(false);
   const navigate = useNavigate();
 
   // =================================================================
-  // CONFIGURAÇÃO DE ACESSO (O seu "Cara ou Crachá" manual)
+  // CONFIGURAÇÃO DOS ACESSOS PERMITIDOS (Cara ou Crachá)
   // =================================================================
   const LISTA_VIP = [
     "informatica.saude.pmob.mg@gmail.com",
@@ -15,24 +18,51 @@ export function Login() {
     "vitor.sanson@gmail.com"
   ];
 
-  const SENHA_PADRAO = "123456";
+  const SENHA_MESTRA = "123456";
 
-  const lidarComLogin = (e) => {
+  const realizarLoginManual = async (e) => {
     e.preventDefault();
+    setCarregando(true);
 
-    console.log("🔒 Tentativa de acesso manual:", email);
+    const emailLimpo = email.toLowerCase().trim();
 
-    // Validação direta no código: Verifica se o e-mail está na lista e se a senha confere
-    if (LISTA_VIP.includes(email.toLowerCase().trim()) && senha === SENHA_PADRAO) {
-      
-      console.log("✅ Acesso concedido!");
-      // Armazenamos uma flag simples para o navegador saber que houve login
-      localStorage.setItem('autenticado', 'true');
-      navigate('/dashboard');
+    try {
+      // 1. Validação de Credenciais no Código
+      if (LISTA_VIP.includes(emailLimpo) && senha === SENHA_MESTRA) {
+        
+        console.log("✅ Credenciais validadas. Verificando banco de dados...");
 
-    } else {
-      // Mensagem de erro caso os dados não batam
-      alert("ACESSO NEGADO!\n\nUsuário não autorizado ou senha incorreta.\nVerifique os dados com o administrador.");
+        // 2. Lógica de "Criação Automática" no Banco de Dados
+        // Vamos verificar se esse usuário já tem uma "pasta" na coleção usuarios_autorizados
+        const docRef = doc(db, "usuarios_autorizados", emailLimpo);
+        const docSnap = await getDoc(docRef);
+
+        // Se não existir a lista no Google ainda, o código cria ela AGORA:
+        if (!docSnap.exists()) {
+          await setDoc(docRef, {
+            email: emailLimpo,
+            ativo: true,
+            ultimo_acesso: new Date(),
+            setor: emailLimpo.includes('informatica') ? 'TI' : 'Odontologia'
+          });
+          console.log("🛠️ Lista de autenticação criada automaticamente no Firestore!");
+        } else {
+          // Se já existir, apenas atualizamos o horário do último acesso
+          await setDoc(docRef, { ultimo_acesso: new Date() }, { merge: true });
+        }
+
+        // 3. Salva a sessão localmente e entra no Dashboard
+        localStorage.setItem('usuario_logado', emailLimpo);
+        navigate('/dashboard');
+
+      } else {
+        alert("ACESSO NEGADO!\nE-mail ou senha incorretos.");
+      }
+    } catch (error) {
+      console.error("Erro ao processar login:", error);
+      alert("Erro de conexão com o Banco de Dados. Verifique sua internet.");
+    } finally {
+      setCarregando(false);
     }
   };
 
@@ -42,9 +72,9 @@ export function Login() {
         <h2 className="text-2xl font-bold text-gray-900 mb-2 tracking-tight">Painel Administrativo</h2>
         <p className="text-gray-500 mb-8 text-sm uppercase font-semibold tracking-wider">CEO Ouro Branco</p>
         
-        <form onSubmit={lidarComLogin} className="space-y-5">
+        <form onSubmit={realizarLoginManual} className="space-y-4">
           <div className="text-left">
-            <label className="text-[10px] font-black uppercase text-gray-400 mb-1 block tracking-widest">E-mail de Acesso</label>
+            <label className="text-[10px] font-black uppercase text-gray-400 mb-1 block tracking-widest">E-mail Corporativo</label>
             <input 
               type="email" 
               required
@@ -56,7 +86,7 @@ export function Login() {
           </div>
 
           <div className="text-left">
-            <label className="text-[10px] font-black uppercase text-gray-400 mb-1 block tracking-widest">Senha</label>
+            <label className="text-[10px] font-black uppercase text-gray-400 mb-1 block tracking-widest">Senha de Acesso</label>
             <input 
               type="password" 
               required
@@ -69,9 +99,10 @@ export function Login() {
 
           <button 
             type="submit"
-            className="w-full bg-gray-900 text-white py-4 px-4 rounded-lg font-bold hover:bg-black transition-all shadow-lg text-[11px] uppercase tracking-[0.2em] mt-2"
+            disabled={carregando}
+            className={`w-full bg-gray-900 text-white py-4 px-4 rounded-lg font-bold hover:bg-black transition-all shadow-lg text-[11px] uppercase tracking-[0.2em] mt-2 ${carregando ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
-            Entrar no Sistema
+            {carregando ? 'Autenticando...' : 'Entrar no Sistema'}
           </button>
         </form>
 
