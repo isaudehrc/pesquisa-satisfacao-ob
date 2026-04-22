@@ -5,13 +5,51 @@ import { signOut, onAuthStateChanged } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
+// =======================================================================
+// COMPONENTE AUXILIAR: Desenha a pergunta exatamente como no formulário
+// =======================================================================
+const PerguntaRadio = ({ pergunta, resposta }) => {
+  const opcoes = ["Ótimo", "Bom", "Regular", "Ruim", "Péssimo"];
+  
+  return (
+    <div className="mb-6">
+      <p className="text-sm font-bold text-gray-800 mb-3">{pergunta}</p>
+      <div className="flex flex-wrap gap-4">
+        {opcoes.map(opcao => {
+          const selecionado = resposta === opcao;
+          return (
+            <div 
+              key={opcao} 
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-all ${
+                selecionado 
+                  ? 'bg-blue-50 border-blue-500 text-blue-900 shadow-sm' 
+                  : 'bg-gray-50 border-gray-200 text-gray-400 opacity-60'
+              }`}
+            >
+              {/* A "Bolinha" do Radio */}
+              <div className={`w-5 h-5 rounded-full flex items-center justify-center border-2 ${
+                selecionado ? 'border-blue-600 bg-blue-600' : 'border-gray-300 bg-white'
+              }`}>
+                {selecionado && <div className="w-2 h-2 bg-white rounded-full"></div>}
+              </div>
+              <span className="text-xs font-black uppercase tracking-wide">{opcao}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+// =======================================================================
+// O PAINEL PRINCIPAL
+// =======================================================================
 export function Dashboard() {
   const [fichas, setFichas] = useState([]);
   const [carregando, setCarregando] = useState(true);
-  const [fichaAberta, setFichaAberta] = useState(null); // Estado para controlar qual ficha está sendo lida
+  const [fichaAberta, setFichaAberta] = useState(null); 
   const navigate = useNavigate();
 
-  // SEGURANÇA: Vigia da porta dos fundos
   useEffect(() => {
     const vigia = onAuthStateChanged(auth, (user) => {
       if (!user) navigate('/login');
@@ -36,7 +74,6 @@ export function Dashboard() {
     signOut(auth).then(() => navigate('/login'));
   };
 
-  // --- CÁLCULOS DE INTELIGÊNCIA ---
   const mediaEstrelas = fichas.length > 0 
     ? (fichas.reduce((acc, ficha) => acc + Number(ficha.satisfacao_geral_estrelas || 0), 0) / fichas.length).toFixed(1)
     : 0;
@@ -58,6 +95,21 @@ export function Dashboard() {
     if (mes < 0 || (mes === 0 && hoje.getDate() < nascimento.getDate())) idade--;
     return idade;
   };
+
+  const idadesValidas = fichas.map(f => calcularIdade(f.dataNascimento)).filter(i => i !== "N/I" && !isNaN(i));
+  let perfilPrincipal = "Não avaliado";
+  let mediaIdade = 0;
+
+  if (idadesValidas.length > 0) {
+    const somaIdades = idadesValidas.reduce((a, b) => a + b, 0);
+    mediaIdade = Math.round(somaIdades / idadesValidas.length);
+    const grupos = {
+      "Jovens (Até 19)": idadesValidas.filter(i => i <= 19).length,
+      "Adultos (20 a 59)": idadesValidas.filter(i => i >= 20 && i <= 59).length,
+      "Idosos (60+)": idadesValidas.filter(i => i >= 60).length,
+    };
+    perfilPrincipal = Object.keys(grupos).reduce((a, b) => grupos[a] > grupos[b] ? a : b);
+  }
 
   if (carregando) return <div className="p-10 text-center text-gray-500 font-medium tracking-widest">SINCRONIZANDO...</div>;
 
@@ -91,13 +143,29 @@ export function Dashboard() {
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 flex flex-col items-center">
-            <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-2">Público Atendido</span>
-            <span className="text-lg font-black text-blue-600 uppercase">Amostra Global</span>
+          <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 flex flex-col items-center relative overflow-hidden">
+            <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-2">Público Principal</span>
+            <span className="text-2xl font-black text-blue-600 uppercase text-center">{perfilPrincipal}</span>
+            {idadesValidas.length > 0 && (
+              <span className="text-[10px] text-gray-400 font-bold uppercase mt-2 tracking-widest">Idade Média: {mediaIdade} anos</span>
+            )}
           </div>
         </div>
 
-        {/* TABELA DE DADOS COM O NOVO BOTÃO "VER" */}
+        {/* GRÁFICO E TABELA */}
+        <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 h-64 mb-8">
+          <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-4 block text-center">Distribuição de Notas (Volume)</span>
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={distribuicaoNotas} layout="vertical" margin={{ top: 0, right: 0, left: 10, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f0f0f0" />
+              <XAxis type="number" hide />
+              <YAxis dataKey="nota" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#6b7280' }} width={60} />
+              <Tooltip cursor={{ fill: '#f9fafb' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+              <Bar dataKey="quantidade" fill="#1f2937" radius={[0, 4, 4, 0]} barSize={16} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
         <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200">
           <div className="bg-gray-900 p-4">
             <h2 className="text-white text-xs font-bold uppercase tracking-widest">Histórico de Fichas</h2>
@@ -107,7 +175,6 @@ export function Dashboard() {
               <tr>
                 <th className="p-4">Data</th>
                 <th className="p-4">Paciente</th>
-                <th className="p-4">Município</th>
                 <th className="p-4 text-center">Nota</th>
                 <th className="p-4 text-center">Ação</th>
               </tr>
@@ -115,15 +182,8 @@ export function Dashboard() {
             <tbody className="divide-y divide-gray-100">
               {fichas.map((ficha) => (
                 <tr key={ficha.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="p-4 text-gray-400 font-mono text-[11px]">
-                    {ficha.data_envio?.toDate().toLocaleDateString('pt-BR')}
-                  </td>
-                  <td className="p-4 font-bold text-gray-800 uppercase text-xs">
-                    {ficha.nome || "Anônimo"}
-                  </td>
-                  <td className="p-4 text-gray-500 italic text-xs">
-                    {ficha.municipio || "N/I"}
-                  </td>
+                  <td className="p-4 text-gray-400 font-mono text-[11px]">{ficha.data_envio?.toDate().toLocaleDateString('pt-BR')}</td>
+                  <td className="p-4 font-bold text-gray-800 uppercase text-xs">{ficha.nome || "Anônimo"}</td>
                   <td className="p-4 text-center">
                     <span className="px-3 py-1 rounded-full bg-yellow-100 text-yellow-700 font-black text-[10px] border border-yellow-200">
                       {ficha.satisfacao_geral_estrelas} ★
@@ -132,9 +192,9 @@ export function Dashboard() {
                   <td className="p-4 text-center">
                     <button 
                       onClick={() => setFichaAberta(ficha)}
-                      className="bg-gray-900 text-white text-[9px] font-bold py-1 px-3 rounded uppercase hover:bg-blue-600 transition-all shadow-sm"
+                      className="bg-gray-900 text-white text-[9px] font-bold py-2 px-4 rounded uppercase hover:bg-blue-600 transition-all shadow-sm tracking-widest"
                     >
-                      Ver Ficha
+                      Abrir Ficha
                     </button>
                   </td>
                 </tr>
@@ -145,106 +205,128 @@ export function Dashboard() {
       </div>
 
       {/* ========================================================== */}
-      {/* O MODAL DA FICHA COMPLETA (MODO LEITURA) */}
+      {/* RÉPLICA DO FORMULÁRIO (MODAL WYSIWYG) */}
       {/* ========================================================== */}
       {fichaAberta && (
-        <div className="fixed inset-0 bg-black bg-opacity-70 z-50 flex justify-center items-center p-4 backdrop-blur-sm">
-          <div className="bg-white max-w-2xl w-full max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl border-t-8 border-gray-900 animate-in fade-in zoom-in duration-200">
+        <div className="fixed inset-0 bg-gray-900 bg-opacity-80 z-50 flex justify-center items-center p-4 md:p-10 backdrop-blur-sm overflow-y-auto">
+          
+          <div className="bg-white max-w-4xl w-full rounded-xl shadow-2xl relative mt-auto mb-auto overflow-hidden">
             
-            {/* Cabeçalho do Modal */}
-            <div className="sticky top-0 bg-white border-b p-6 flex justify-between items-center z-10">
-              <div>
-                <h3 className="font-black text-xl text-gray-900 uppercase tracking-tight">Detalhes da Avaliação</h3>
-                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">ID: {fichaAberta.id}</p>
+            {/* Botão Fechar Flutuante */}
+            <button 
+              onClick={() => setFichaAberta(null)}
+              className="absolute top-4 right-4 bg-gray-200 text-gray-600 w-10 h-10 rounded-full hover:bg-red-500 hover:text-white transition-all font-bold text-xl z-20 flex items-center justify-center shadow-md"
+              title="Fechar Ficha"
+            >
+              ✕
+            </button>
+
+            {/* Cabeçalho da Ficha */}
+            <div className="bg-gray-50 border-b border-gray-200 p-8 text-center">
+              <h2 className="text-2xl font-black text-gray-900 uppercase tracking-widest">Pesquisa de Satisfação</h2>
+              <p className="text-sm font-bold text-gray-500 uppercase mt-1">Centro de Especialidades Odontológicas</p>
+              <div className="mt-4 inline-block bg-blue-100 text-blue-800 px-4 py-1 rounded-md text-xs font-black uppercase tracking-[0.2em] border border-blue-200 shadow-sm">
+                Modo Leitura • Ficha ID: {fichaAberta.id.substring(0, 8)}...
               </div>
-              <button 
-                onClick={() => setFichaAberta(null)}
-                className="bg-gray-100 text-gray-500 w-10 h-10 rounded-full hover:bg-red-50 hover:text-red-600 transition-all font-bold text-xl"
-              >
-                ✕
-              </button>
             </div>
 
-            {/* Conteúdo da Ficha */}
-            <div className="p-8 space-y-8">
+            <div className="p-8 md:p-12">
               
-              {/* Seção 1: Perfil */}
-              <section>
-                <h4 className="text-[11px] font-black uppercase text-blue-600 mb-4 tracking-[0.2em] border-b pb-2">1. Perfil do Paciente</h4>
-                <div className="grid grid-cols-2 gap-6">
+              {/* 1. DADOS GERAIS */}
+              <div className="mb-12">
+                <div className="bg-gray-900 text-white font-bold uppercase text-xs tracking-[0.2em] p-3 mb-6 rounded shadow-sm">
+                  1. Dados Gerais
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Nome</p>
-                    <p className="font-bold text-gray-800 text-sm uppercase">{fichaAberta.nome || "Não informado"}</p>
+                    <label className="block text-xs font-black text-gray-400 uppercase mb-2 tracking-widest">Nome do Paciente</label>
+                    <input disabled value={fichaAberta.nome || "Não informado"} className="w-full bg-gray-50 border-2 border-gray-200 rounded-lg p-3 text-sm text-gray-700 font-bold uppercase cursor-not-allowed" />
                   </div>
                   <div>
-                    <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Idade</p>
-                    <p className="font-bold text-gray-800 text-sm">{calcularIdade(fichaAberta.dataNascimento)} anos</p>
+                    <label className="block text-xs font-black text-gray-400 uppercase mb-2 tracking-widest">Data de Nascimento</label>
+                    <input disabled type="date" value={fichaAberta.dataNascimento || ""} className="w-full bg-gray-50 border-2 border-gray-200 rounded-lg p-3 text-sm text-gray-700 font-bold cursor-not-allowed" />
                   </div>
                   <div>
-                    <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Sexo</p>
-                    <p className="font-bold text-gray-800 text-sm uppercase">{fichaAberta.sexo || "N/I"}</p>
+                    <label className="block text-xs font-black text-gray-400 uppercase mb-2 tracking-widest">Sexo</label>
+                    <input disabled value={fichaAberta.sexo || "Não informado"} className="w-full bg-gray-50 border-2 border-gray-200 rounded-lg p-3 text-sm text-gray-700 font-bold uppercase cursor-not-allowed" />
                   </div>
                   <div>
-                    <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Município</p>
-                    <p className="font-bold text-gray-800 text-sm uppercase">{fichaAberta.municipio || "N/I"}</p>
+                    <label className="block text-xs font-black text-gray-400 uppercase mb-2 tracking-widest">Município</label>
+                    <input disabled value={fichaAberta.municipio || "Não informado"} className="w-full bg-gray-50 border-2 border-gray-200 rounded-lg p-3 text-sm text-gray-700 font-bold uppercase cursor-not-allowed" />
                   </div>
                 </div>
-              </section>
+              </div>
 
-              {/* Seção 2: Equipe e Atendimento */}
-              <section>
-                <h4 className="text-[11px] font-black uppercase text-blue-600 mb-4 tracking-[0.2em] border-b pb-2">2. Desempenho da Equipe</h4>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center bg-gray-50 p-3 rounded">
-                    <span className="text-xs font-medium text-gray-600">Cordialidade e Respeito</span>
-                    <span className="font-black text-gray-900 text-xs uppercase">{fichaAberta.cordialidade}</span>
-                  </div>
-                  <div className="flex justify-between items-center bg-gray-50 p-3 rounded">
-                    <span className="text-xs font-medium text-gray-600">Clareza nas Explicações</span>
-                    <span className="font-black text-gray-900 text-xs uppercase">{fichaAberta.clareza}</span>
-                  </div>
+              {/* 2. AVALIAÇÃO DA EQUIPE */}
+              <div className="mb-12">
+                <div className="bg-gray-900 text-white font-bold uppercase text-xs tracking-[0.2em] p-3 mb-6 rounded shadow-sm">
+                  2. Avaliação da Equipe e Atendimento
                 </div>
-              </section>
-
-              {/* Seção 3: Infraestrutura */}
-              <section>
-                <h4 className="text-[11px] font-black uppercase text-blue-600 mb-4 tracking-[0.2em] border-b pb-2">3. Ambiente e Tempo</h4>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center bg-gray-50 p-3 rounded">
-                    <span className="text-xs font-medium text-gray-600">Facilidade de Acesso</span>
-                    <span className="font-black text-gray-900 text-xs uppercase">{fichaAberta.acesso}</span>
-                  </div>
-                  <div className="flex justify-between items-center bg-gray-50 p-3 rounded">
-                    <span className="text-xs font-medium text-gray-600">Tempo de Espera</span>
-                    <span className="font-black text-gray-900 text-xs uppercase">{fichaAberta.tempo}</span>
-                  </div>
-                  <div className="flex justify-between items-center bg-gray-50 p-3 rounded">
-                    <span className="text-xs font-medium text-gray-600">Higiene e Conforto</span>
-                    <span className="font-black text-gray-900 text-xs uppercase">{fichaAberta.ambiente}</span>
-                  </div>
+                <div className="bg-white border-2 border-gray-100 rounded-xl p-6 shadow-sm">
+                  <PerguntaRadio 
+                    pergunta="Como você avalia a cordialidade e o respeito da equipe (recepção e dentistas)?" 
+                    resposta={fichaAberta.cordialidade} 
+                  />
+                  <div className="h-px bg-gray-100 w-full my-6"></div>
+                  <PerguntaRadio 
+                    pergunta="Como você avalia a clareza das explicações fornecidas pelo dentista sobre o seu tratamento?" 
+                    resposta={fichaAberta.clareza} 
+                  />
                 </div>
-              </section>
+              </div>
 
-              {/* Seção 4: Sugestões */}
-              <section className="bg-yellow-50 p-6 rounded-xl border border-yellow-100">
-                <h4 className="text-[11px] font-black uppercase text-yellow-700 mb-2 tracking-[0.2em]">Observações e Sugestões</h4>
-                <p className="text-gray-700 text-sm italic italic leading-relaxed">
-                  "{fichaAberta.sugestoes || "O paciente não deixou comentários adicionais."}"
-                </p>
-              </section>
+              {/* 3. TRATAMENTO E AVALIAÇÃO (COM AS ESTRELAS) */}
+              <div className="mb-12">
+                <div className="bg-gray-900 text-white font-bold uppercase text-xs tracking-[0.2em] p-3 mb-6 rounded shadow-sm">
+                  3. Tratamento e Avaliação Geral
+                </div>
+                <div className="bg-white border-2 border-gray-100 rounded-xl p-6 shadow-sm mb-6">
+                  <PerguntaRadio pergunta="Como você avalia a facilidade de acesso ao CEO?" resposta={fichaAberta.acesso} />
+                  <div className="h-px bg-gray-100 w-full my-6"></div>
+                  <PerguntaRadio pergunta="Como você avalia o tempo de espera?" resposta={fichaAberta.tempo} />
+                  <div className="h-px bg-gray-100 w-full my-6"></div>
+                  <PerguntaRadio pergunta="Como você avalia o ambiente do CEO (higiene e conforto)?" resposta={fichaAberta.ambiente} />
+                  <div className="h-px bg-gray-100 w-full my-6"></div>
+                  <PerguntaRadio pergunta="Como você avalia o atendimento às suas necessidades odontológicas?" resposta={fichaAberta.atendimento_necessidades} />
+                  <div className="h-px bg-gray-100 w-full my-6"></div>
+                  <PerguntaRadio pergunta="Como você avalia a sua compreensão sobre os cuidados pós-tratamento?" resposta={fichaAberta.compreensao_orientacoes} />
+                </div>
+
+                {/* Bloco Exclusivo das Estrelas */}
+                <div className="bg-gray-50 border-2 border-gray-200 rounded-xl p-8 text-center shadow-inner">
+                  <p className="font-black text-gray-900 uppercase text-lg mb-6 tracking-widest">Grau de Satisfação Geral</p>
+                  <div className="flex justify-center gap-3">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <svg 
+                        key={star} 
+                        className={`w-14 h-14 drop-shadow-md transition-colors ${star <= Number(fichaAberta.satisfacao_geral_estrelas || 0) ? 'text-yellow-400' : 'text-gray-300'}`}
+                        fill="currentColor" 
+                        viewBox="0 0 24 24"
+                      >
+                        <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+                      </svg>
+                    ))}
+                  </div>
+                  <p className="text-xs font-black text-gray-400 uppercase mt-6 tracking-[0.3em]">
+                    {fichaAberta.satisfacao_geral_estrelas} de 5 Estrelas
+                  </p>
+                </div>
+              </div>
+
+              {/* 4. SUGESTÕES */}
+              <div>
+                <div className="bg-gray-900 text-white font-bold uppercase text-xs tracking-[0.2em] p-3 mb-6 rounded shadow-sm">
+                  4. Observações e Sugestões
+                </div>
+                <textarea 
+                  disabled 
+                  value={fichaAberta.sugestoes || ""}
+                  className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl p-6 text-sm text-gray-700 font-bold min-h-[150px] cursor-not-allowed italic"
+                  placeholder="O paciente não deixou comentários adicionais."
+                />
+              </div>
 
             </div>
-
-            {/* Rodapé do Modal */}
-            <div className="p-6 border-t bg-gray-50 text-center">
-              <button 
-                onClick={() => setFichaAberta(null)}
-                className="bg-gray-900 text-white font-black py-3 px-10 rounded-lg text-xs uppercase tracking-widest hover:bg-black shadow-md"
-              >
-                Fechar Visualização
-              </button>
-            </div>
-
           </div>
         </div>
       )}
