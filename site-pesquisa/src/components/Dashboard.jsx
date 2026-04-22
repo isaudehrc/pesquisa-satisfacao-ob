@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { db, auth } from '../firebase';
-// PASSO 1: Importação atualizada com o addDoc
 import { collection, query, orderBy, onSnapshot, addDoc } from 'firebase/firestore'; 
 import { signOut } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
+// PASSO 1: Importamos as peças do Recharts
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 export function Dashboard() {
   const [fichas, setFichas] = useState([]);
@@ -28,76 +29,80 @@ export function Dashboard() {
     navigate('/login');
   };
 
-  // --- PASSO 2: INÍCIO DO SCRIPT TEMPORÁRIO (GERADOR DE DADOS) ---
-  const gerarMassaDeDados = async () => {
-    setCarregando(true);
-    const autores = ["Machado de Assis", "Clarice Lispector", "Guimarães Rosa", "Cecília Meireles", "Jorge Amado", "Carlos Drummond", "Rachel de Queiroz", "Érico Veríssimo"];
-    const cidades = ["Ouro Branco", "Conselheiro Lafaiete", "Congonhas", "Itabirito", "Belo Horizonte"];
-    const opcoes = ["excelente", "muito_bom", "bom", "regular", "ruim"];
+  // --- CÁLCULOS PARA OS GRÁFICOS (A Mágica dos Dados) ---
+  
+  // 1. Calcula a Média Geral de Estrelas
+  const mediaEstrelas = fichas.length > 0 
+    ? (fichas.reduce((acc, ficha) => acc + Number(ficha.satisfacao_geral_estrelas || 0), 0) / fichas.length).toFixed(1)
+    : 0;
 
-    try {
-      for (let i = 0; i < 30; i++) {
-        const notaAleatoria = Math.floor(Math.random() * 5) + 1;
-        
-        // Gera uma data aleatória retroativa (nos últimos 30 dias)
-        const dataAtrasada = new Date();
-        dataAtrasada.setDate(dataAtrasada.getDate() - Math.floor(Math.random() * 30));
-
-        await addDoc(collection(db, 'fichas_avaliacao'), {
-          nome: autores[Math.floor(Math.random() * autores.length)],
-          municipio: cidades[Math.floor(Math.random() * cidades.length)],
-          satisfacao_geral_estrelas: notaAleatoria.toString(),
-          data_envio: dataAtrasada, // Data retroativa para o gráfico
-          acesso: opcoes[Math.floor(Math.random() * opcoes.length)],
-          ambiente: opcoes[Math.floor(Math.random() * opcoes.length)],
-          atendimento_necessidades: "totalmente",
-          clareza: "muito_bom",
-          compreensao_orientacoes: "sim",
-          cordialidade: "excelente",
-          sexo: i % 2 === 0 ? "masculino" : "feminino",
-          dataNascimento: "1980-01-01",
-          tempo: "bom"
-        });
-      }
-      alert("Sucesso! 30 avaliações literárias foram injetadas.");
-    } catch (err) {
-      console.error(err);
-      alert("Erro ao injetar dados.");
-    } finally {
-      setCarregando(false);
-    }
-  };
-  // --- FIM DO SCRIPT TEMPORÁRIO ---
+  // 2. Prepara os dados para o Gráfico de Barras (Quantas de cada nota?)
+  const distribuicaoNotas = [
+    { nota: '5 Estrelas', quantidade: fichas.filter(f => f.satisfacao_geral_estrelas === '5').length },
+    { nota: '4 Estrelas', quantidade: fichas.filter(f => f.satisfacao_geral_estrelas === '4').length },
+    { nota: '3 Estrelas', quantidade: fichas.filter(f => f.satisfacao_geral_estrelas === '3').length },
+    { nota: '2 Estrelas', quantidade: fichas.filter(f => f.satisfacao_geral_estrelas === '2').length },
+    { nota: '1 Estrela',  quantidade: fichas.filter(f => f.satisfacao_geral_estrelas === '1').length },
+  ];
 
   if (carregando) return <div className="p-10 text-center text-gray-500 font-medium">Sincronizando com Firebase...</div>;
 
   return (
     <div className="min-h-screen bg-gray-100 p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
-        <div className="flex justify-between items-center mb-8 bg-white p-6 rounded-lg shadow-sm border-l-8 border-gray-900">
+        
+        {/* CABEÇALHO SUPERIOR */}
+        <div className="flex justify-between items-center mb-6 bg-white p-6 rounded-lg shadow-sm border-l-8 border-gray-900">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 tracking-tight text-left">Painel Administrativo CEO</h1>
-            <p className="text-xs text-gray-500 font-bold uppercase text-left">Registros totais: {fichas.length}</p>
+            <p className="text-xs text-gray-500 font-bold uppercase text-left">Visão Geral de Desempenho</p>
           </div>
-          
-          <div className="flex items-center">
-            {/* PASSO 3: O BOTÃO MÁGICO */}
-            <button 
-              onClick={gerarMassaDeDados} 
-              className="bg-blue-50 text-blue-600 px-4 py-2 rounded font-bold hover:bg-blue-100 text-[10px] uppercase tracking-widest border border-blue-100 mr-4"
-            >
-              Gerar 30 Testes
-            </button>
-            
-            <button onClick={handleSair} className="bg-red-50 text-red-600 px-4 py-2 rounded font-bold hover:bg-red-100 text-[10px] uppercase tracking-widest border border-red-100">
-              Sair
-            </button>
-          </div>
+          <button onClick={handleSair} className="bg-red-50 text-red-600 px-4 py-2 rounded font-bold hover:bg-red-100 text-[10px] uppercase tracking-widest border border-red-100">
+            Sair
+          </button>
         </div>
 
+        {/* ÁREA DE GRÁFICOS E RESUMOS (NOVO!) */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          
+          {/* Card 1: Total de Registros */}
+          <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 flex flex-col justify-center items-center">
+            <span className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-2">Total de Avaliações</span>
+            <span className="text-5xl font-black text-gray-900">{fichas.length}</span>
+          </div>
+
+          {/* Card 2: Média Geral */}
+          <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 flex flex-col justify-center items-center">
+            <span className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-2">Média de Satisfação</span>
+            <div className="flex items-baseline gap-2">
+              <span className="text-5xl font-black text-yellow-500">{mediaEstrelas}</span>
+              <span className="text-xl text-yellow-500">★</span>
+            </div>
+          </div>
+
+          {/* Card 3: Gráfico de Barras */}
+          <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 h-48">
+            <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-2 block text-center">Distribuição de Notas</span>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={distribuicaoNotas} layout="vertical" margin={{ top: 0, right: 0, left: 10, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f0f0f0" />
+                <XAxis type="number" hide />
+                <YAxis dataKey="nota" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#6b7280' }} width={60} />
+                <Tooltip cursor={{ fill: '#f9fafb' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                <Bar dataKey="quantidade" fill="#1f2937" radius={[0, 4, 4, 0]} barSize={12} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+        </div>
+
+        {/* TABELA DE DADOS (Mantida exatamente como estava) */}
         <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200">
+          <div className="bg-gray-900 p-4">
+            <h2 className="text-white text-xs font-bold uppercase tracking-widest">Últimos Registros</h2>
+          </div>
           <table className="w-full text-left text-sm">
-            <thead className="bg-gray-900 text-white uppercase text-[10px] tracking-widest font-bold">
+            <thead className="bg-gray-50 text-gray-500 uppercase text-[10px] tracking-widest font-bold border-b border-gray-200">
               <tr>
                 <th className="p-4 text-left">Data</th>
                 <th className="p-4 text-left">Paciente</th>
@@ -125,13 +130,6 @@ export function Dashboard() {
                   </tr>
                 );
               })}
-              {fichas.length === 0 && (
-                <tr>
-                  <td colSpan="4" className="p-12 text-center text-gray-400 italic bg-gray-50">
-                    A tabela está limpa! Clique no botão azul para injetar os testes.
-                  </td>
-                </tr>
-              )}
             </tbody>
           </table>
         </div>
