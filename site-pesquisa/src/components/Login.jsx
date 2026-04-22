@@ -1,6 +1,9 @@
 import React from 'react';
-import { auth, provider } from '../firebase';
+// IMPORTANTE: Adicionamos o 'db' (banco de dados) na importação do firebase
+import { auth, provider, db } from '../firebase'; 
 import { signInWithPopup } from 'firebase/auth';
+// IMPORTANTE: Adicionamos as ferramentas para ler o banco de dados
+import { doc, getDoc } from 'firebase/firestore'; 
 import { useNavigate, Link } from 'react-router-dom';
 
 export function Login() {
@@ -8,16 +11,48 @@ export function Login() {
 
   const fazerLogin = async () => {
     try {
-      // Tenta abrir o popup do Google
+      // =================================================================
+      // PASSO 1: AUTENTICAÇÃO (O Google confirma quem a pessoa é)
+      // =================================================================
       const result = await signInWithPopup(auth, provider);
-      if (result.user) {
+      
+      // Aqui está a variável super evidenciada recebendo o e-mail:
+      const emailTentandoAcesso = result.user.email;
+      
+      console.log("Detectamos um login do e-mail:", emailTentandoAcesso);
+
+      // =================================================================
+      // PASSO 2: BUSCA DO CRACHÁ (Procurar o e-mail no Banco de Dados)
+      // =================================================================
+      // Vamos na coleção "usuarios_autorizados" procurar um documento que tenha o exato nome do e-mail
+      const referenciaDoCracha = doc(db, 'usuarios_autorizados', emailTentandoAcesso);
+      const crachaEncontrado = await getDoc(referenciaDoCracha);
+
+      // =================================================================
+      // PASSO 3: O GRANDE TESTE (A Autorização)
+      // =================================================================
+      if (crachaEncontrado.exists() && crachaEncontrado.data().ativo === true) {
+        
+        // SUCESSO: Tem o crachá e está ativo!
+        console.log("Acesso Liberado para:", emailTentandoAcesso);
         navigate('/dashboard');
+        
+      } else {
+        
+        // FALHA: E-mail não está na lista ou foi desativado (ativo = false)
+        // Ação imediata: Derrubar a sessão do Google para proteger o sistema
+        await auth.signOut(); 
+        
+        // Alerta elegante e claro para o usuário:
+        alert(`ACESSO NEGADO!\n\nO e-mail "${emailTentandoAcesso}" não possui autorização para acessar o painel do CEO.\n\nSolicite a liberação ao administrador do sistema.`);
       }
+
     } catch (error) {
       console.error("Erro detalhado:", error.code);
       if (error.code === 'auth/unauthorized-domain') {
         alert("Erro: Domínio não autorizado no Firebase. Adicione o link da Vercel no Console do Firebase.");
-      } else {
+      } else if (error.code !== 'auth/popup-closed-by-user') {
+        // Ignora o erro se o usuário apenas fechar a janelinha do Google de propósito
         alert("Falha no login. Verifique se o popup não foi bloqueado pelo navegador.");
       }
     }
