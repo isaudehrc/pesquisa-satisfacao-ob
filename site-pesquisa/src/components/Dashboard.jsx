@@ -6,18 +6,17 @@ import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 // =======================================================================
-// COMPONENTE AUXILIAR: Desenha a pergunta com as opções EXATAS do original
+// COMPONENTE AUXILIAR: Desenha a pergunta EXATAMENTE como no formulário
 // =======================================================================
 const PerguntaRadio = ({ pergunta, resposta, opcoesOriginais }) => {
-  // Blindagem: Se a resposta salva no banco não estiver na lista (ex: ficha antiga),
-  // adicionamos ela na tela temporariamente para não ocultar a informação da gestora.
+  // Garantia: Se a resposta do banco não estiver na lista original, ela aparece mesmo assim
   const opcoesNaTela = (resposta && !opcoesOriginais.includes(resposta)) 
     ? [...opcoesOriginais, resposta] 
     : opcoesOriginais;
   
   return (
     <div className="mb-6">
-      <p className="text-sm font-bold text-gray-800 mb-3">{pergunta}</p>
+      <p className="text-[13px] font-bold text-gray-900 mb-3">{pergunta}</p>
       <div className="flex flex-wrap gap-4">
         {opcoesNaTela.map(opcao => {
           const selecionado = resposta === opcao;
@@ -27,16 +26,16 @@ const PerguntaRadio = ({ pergunta, resposta, opcoesOriginais }) => {
               className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-all ${
                 selecionado 
                   ? 'bg-blue-50 border-blue-500 text-blue-900 shadow-sm' 
-                  : 'bg-gray-50 border-gray-200 text-gray-400 opacity-60'
+                  : 'bg-white border-gray-200 text-gray-500 opacity-60'
               }`}
             >
-              {/* A "Bolinha" do Radio */}
+              {/* Bolinha do Radio */}
               <div className={`w-5 h-5 rounded-full flex items-center justify-center border-2 ${
                 selecionado ? 'border-blue-600 bg-blue-600' : 'border-gray-300 bg-white'
               }`}>
                 {selecionado && <div className="w-2 h-2 bg-white rounded-full"></div>}
               </div>
-              <span className="text-xs font-black uppercase tracking-wide">{opcao}</span>
+              <span className="text-xs font-bold">{opcao}</span>
             </div>
           );
         })}
@@ -118,7 +117,7 @@ export function Dashboard() {
   if (carregando) return <div className="p-10 text-center text-gray-500 font-medium tracking-widest">SINCRONIZANDO...</div>;
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4 md:p-8 relative">
+    <div className="min-h-screen bg-gray-100 p-4 md:p-8 relative font-sans">
       <div className="max-w-6xl mx-auto">
         
         {/* CABEÇALHO */}
@@ -209,12 +208,12 @@ export function Dashboard() {
       </div>
 
       {/* ========================================================== */}
-      {/* RÉPLICA DO FORMULÁRIO (MODAL WYSIWYG) */}
+      {/* RÉPLICA EXATA DO FORMULÁRIO ORIGINAL */}
       {/* ========================================================== */}
       {fichaAberta && (
         <div className="fixed inset-0 bg-gray-900 bg-opacity-80 z-50 flex justify-center items-center p-4 md:p-10 backdrop-blur-sm overflow-y-auto">
           
-          <div className="bg-white max-w-4xl w-full rounded-xl shadow-2xl relative mt-auto mb-auto overflow-hidden">
+          <div className="bg-white max-w-3xl w-full rounded-xl shadow-2xl relative mt-auto mb-auto overflow-hidden">
             
             <button 
               onClick={() => setFichaAberta(null)}
@@ -225,10 +224,9 @@ export function Dashboard() {
             </button>
 
             <div className="bg-gray-50 border-b border-gray-200 p-8 text-center">
-              <h2 className="text-2xl font-black text-gray-900 uppercase tracking-widest">Pesquisa de Satisfação</h2>
-              <p className="text-sm font-bold text-gray-500 uppercase mt-1">Centro de Especialidades Odontológicas</p>
+              <h2 className="text-2xl font-black text-gray-900 uppercase tracking-widest">Ficha de Avaliação</h2>
               <div className="mt-4 inline-block bg-blue-100 text-blue-800 px-4 py-1 rounded-md text-xs font-black uppercase tracking-[0.2em] border border-blue-200 shadow-sm">
-                Modo Leitura • Ficha ID: {fichaAberta.id.substring(0, 8)}...
+                Modo Leitura • ID: {fichaAberta.id.substring(0, 8)}...
               </div>
             </div>
 
@@ -268,18 +266,18 @@ export function Dashboard() {
                   <PerguntaRadio 
                     pergunta="Como você avalia a cordialidade e o respeito da equipe (recepção e dentistas)?" 
                     resposta={fichaAberta.cordialidade} 
-                    opcoesOriginais={["Excelente", "Boa", "Regular", "Ruim"]}
+                    opcoesOriginais={["Ótimo", "Bom", "Regular", "Ruim", "Péssimo"]}
                   />
                   <div className="h-px bg-gray-100 w-full my-6"></div>
                   <PerguntaRadio 
-                    pergunta="Como você avalia a clareza das explicações fornecidas pelo dentista sobre o seu tratamento?" 
+                    pergunta="As explicações do dentista sobre o seu tratamento foram claras?" 
                     resposta={fichaAberta.clareza} 
-                    opcoesOriginais={["Muito claras", "Claras", "Pouco claras", "Não explicou"]}
+                    opcoesOriginais={["Sim", "Parcialmente", "Não"]}
                   />
                 </div>
               </div>
 
-              {/* 3. TRATAMENTO E AVALIAÇÃO (COM AS ESTRELAS) */}
+              {/* 3. TRATAMENTO E AVALIAÇÃO */}
               <div className="mb-12">
                 <div className="bg-gray-900 text-white font-bold uppercase text-xs tracking-[0.2em] p-3 mb-6 rounded shadow-sm">
                   3. Tratamento e Avaliação Geral
@@ -288,41 +286,41 @@ export function Dashboard() {
                   <PerguntaRadio 
                     pergunta="Como você avalia a facilidade de acesso ao CEO?" 
                     resposta={fichaAberta.acesso} 
-                    opcoesOriginais={["Muito fácil", "Fácil", "Difícil", "Muito difícil"]}
+                    opcoesOriginais={["Ótimo", "Bom", "Regular", "Ruim", "Péssimo"]}
                   />
                   <div className="h-px bg-gray-100 w-full my-6"></div>
                   <PerguntaRadio 
-                    pergunta="Como você avalia o tempo de espera?" 
+                    pergunta="Como você avalia o tempo de espera para o atendimento?" 
                     resposta={fichaAberta.tempo} 
-                    opcoesOriginais={["Menos de 15 min", "15 a 30 min", "30 a 60 min", "Mais de 1 hora"]}
+                    opcoesOriginais={["Ótimo", "Bom", "Regular", "Ruim", "Péssimo"]}
                   />
                   <div className="h-px bg-gray-100 w-full my-6"></div>
                   <PerguntaRadio 
                     pergunta="Como você avalia o ambiente do CEO (higiene e conforto)?" 
                     resposta={fichaAberta.ambiente} 
-                    opcoesOriginais={["Excelente", "Bom", "Regular", "Ruim"]}
+                    opcoesOriginais={["Ótimo", "Bom", "Regular", "Ruim", "Péssimo"]}
                   />
                   <div className="h-px bg-gray-100 w-full my-6"></div>
                   <PerguntaRadio 
-                    pergunta="Como você avalia o atendimento às suas necessidades odontológicas?" 
+                    pergunta="O tratamento atendeu às suas necessidades odontológicas?" 
                     resposta={fichaAberta.atendimento_necessidades} 
-                    opcoesOriginais={["Totalmente", "Parcialmente", "Não atendeu"]}
+                    opcoesOriginais={["Sim", "Parcialmente", "Não"]}
                   />
                   <div className="h-px bg-gray-100 w-full my-6"></div>
                   <PerguntaRadio 
-                    pergunta="Como você avalia a sua compreensão sobre os cuidados pós-tratamento?" 
+                    pergunta="Você compreendeu as orientações sobre cuidados após o tratamento?" 
                     resposta={fichaAberta.compreensao_orientacoes} 
-                    opcoesOriginais={["Compreendi totalmente", "Compreendi parcialmente", "Não compreendi"]}
+                    opcoesOriginais={["Sim", "Parcialmente", "Não"]}
                   />
                 </div>
 
                 <div className="bg-gray-50 border-2 border-gray-200 rounded-xl p-8 text-center shadow-inner">
-                  <p className="font-black text-gray-900 uppercase text-lg mb-6 tracking-widest">Grau de Satisfação Geral</p>
+                  <p className="font-black text-gray-900 uppercase text-sm mb-6 tracking-widest">Grau de Satisfação Geral</p>
                   <div className="flex justify-center gap-3">
                     {[1, 2, 3, 4, 5].map((star) => (
                       <svg 
                         key={star} 
-                        className={`w-14 h-14 drop-shadow-md transition-colors ${star <= Number(fichaAberta.satisfacao_geral_estrelas || 0) ? 'text-yellow-400' : 'text-gray-300'}`}
+                        className={`w-12 h-12 drop-shadow-md transition-colors ${star <= Number(fichaAberta.satisfacao_geral_estrelas || 0) ? 'text-yellow-400' : 'text-gray-300'}`}
                         fill="currentColor" 
                         viewBox="0 0 24 24"
                       >
@@ -330,7 +328,7 @@ export function Dashboard() {
                       </svg>
                     ))}
                   </div>
-                  <p className="text-xs font-black text-gray-400 uppercase mt-6 tracking-[0.3em]">
+                  <p className="text-[10px] font-black text-gray-400 uppercase mt-4 tracking-[0.3em]">
                     {fichaAberta.satisfacao_geral_estrelas} de 5 Estrelas
                   </p>
                 </div>
@@ -344,8 +342,8 @@ export function Dashboard() {
                 <textarea 
                   disabled 
                   value={fichaAberta.sugestoes || ""}
-                  className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl p-6 text-sm text-gray-700 font-bold min-h-[150px] cursor-not-allowed italic"
-                  placeholder="O paciente não deixou comentários adicionais."
+                  className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl p-6 text-sm text-gray-700 font-bold min-h-[120px] cursor-not-allowed italic"
+                  placeholder="Nenhum comentário adicional registrado."
                 />
               </div>
 
