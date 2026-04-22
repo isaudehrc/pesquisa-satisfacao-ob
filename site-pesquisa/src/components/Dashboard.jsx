@@ -34,8 +34,9 @@ export function Dashboard() {
       <div className="max-w-6xl mx-auto">
         <div className="flex justify-between items-center mb-8 bg-white p-6 rounded-lg shadow-sm border-l-8 border-gray-900">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Painel Administrativo CEO</h1>
-            <p className="text-xs text-gray-500 font-bold uppercase">Registros totais: {fichas.length}</p>
+            {/* TRAVA DE ALINHAMENTO: text-left */}
+            <h1 className="text-2xl font-bold text-gray-900 tracking-tight text-left">Painel Administrativo CEO</h1>
+            <p className="text-xs text-gray-500 font-bold uppercase text-left">Registros totais: {fichas.length}</p>
           </div>
           <button onClick={handleSair} className="bg-red-50 text-red-600 px-4 py-2 rounded font-bold hover:bg-red-100 text-[10px] uppercase tracking-widest border border-red-100">Sair</button>
         </div>
@@ -44,9 +45,9 @@ export function Dashboard() {
           <table className="w-full text-left text-sm">
             <thead className="bg-gray-900 text-white uppercase text-[10px] tracking-widest font-bold">
               <tr>
-                <th className="p-4">Data</th>
-                <th className="p-4">Paciente</th>
-                <th className="p-4">Município</th>
+                <th className="p-4 text-left">Data</th>
+                <th className="p-4 text-left">Paciente</th>
+                <th className="p-4 text-left">Município</th>
                 <th className="p-4 text-center">Nota</th>
               </tr>
             </thead>
@@ -57,11 +58,11 @@ export function Dashboard() {
 
                 return (
                   <tr key={ficha.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="p-4 text-gray-400 font-mono text-[11px]">
+                    <td className="p-4 text-gray-400 font-mono text-[11px] text-left">
                       {ficha.data_envio?.toDate().toLocaleDateString('pt-BR')}
                     </td>
-                    <td className="p-4 font-bold text-gray-800 uppercase text-xs">{nomeFinal}</td>
-                    <td className="p-4 text-gray-500 italic text-xs uppercase">{municipioFinal}</td>
+                    <td className="p-4 font-bold text-gray-800 uppercase text-xs text-left">{nomeFinal}</td>
+                    <td className="p-4 text-gray-500 italic text-xs uppercase text-left">{municipioFinal}</td>
                     <td className="p-4 text-center">
                       <span className="px-3 py-1 rounded-full bg-yellow-100 text-yellow-700 font-black text-[11px] border border-yellow-200">
                         {ficha.satisfacao_geral_estrelas} ★
