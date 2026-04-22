@@ -25,8 +25,9 @@ export function Dashboard() {
   }, []);
 
   const handleSair = () => {
-    signOut(auth);
-    navigate('/login');
+    signOut(auth).then(() => {
+      navigate('/login');
+    });
   };
 
   // --- CÁLCULOS PARA OS GRÁFICOS (A Mágica dos Dados) ---

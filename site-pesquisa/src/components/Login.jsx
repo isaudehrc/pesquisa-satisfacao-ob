@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
-import { db } from '../firebase'; // Importamos o banco de dados
-import { doc, getDoc, setDoc } from 'firebase/firestore'; // Ferramentas de escrita/leitura
+import { db, auth } from '../firebase'; 
+import { 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword 
+} from 'firebase/auth';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore'; 
 import { useNavigate, Link } from 'react-router-dom';
 
 export function Login() {
@@ -9,9 +13,7 @@ export function Login() {
   const [carregando, setCarregando] = useState(false);
   const navigate = useNavigate();
 
-  // =================================================================
-  // CONFIGURAÇÃO DOS ACESSOS PERMITIDOS (Cara ou Crachá)
-  // =================================================================
+  // LISTA CARA OU CRACHÁ
   const LISTA_VIP = [
     "informatica.saude.pmob.mg@gmail.com",
     "odontopmob@gmail.com",
@@ -20,47 +22,52 @@ export function Login() {
 
   const SENHA_MESTRA = "123456";
 
-  const realizarLoginManual = async (e) => {
+  const processarLoginoficial = async (e) => {
     e.preventDefault();
     setCarregando(true);
-
     const emailLimpo = email.toLowerCase().trim();
 
+    // Validação inicial da Lista VIP
+    if (!LISTA_VIP.includes(emailLimpo)) {
+      alert("ACESSO NEGADO: Este e-mail não faz parte da diretoria.");
+      setCarregando(false);
+      return;
+    }
+
+    if (senha !== SENHA_MESTRA) {
+      alert("SENHA INCORRETA: Verifique os dados.");
+      setCarregando(false);
+      return;
+    }
+
     try {
-      // 1. Validação de Credenciais no Código
-      if (LISTA_VIP.includes(emailLimpo) && senha === SENHA_MESTRA) {
-        
-        console.log("✅ Credenciais validadas. Verificando banco de dados...");
-
-        // 2. Lógica de "Criação Automática" no Banco de Dados
-        // Vamos verificar se esse usuário já tem uma "pasta" na coleção usuarios_autorizados
-        const docRef = doc(db, "usuarios_autorizados", emailLimpo);
-        const docSnap = await getDoc(docRef);
-
-        // Se não existir a lista no Google ainda, o código cria ela AGORA:
-        if (!docSnap.exists()) {
-          await setDoc(docRef, {
-            email: emailLimpo,
-            ativo: true,
-            ultimo_acesso: new Date(),
-            setor: emailLimpo.includes('informatica') ? 'TI' : 'Odontologia'
-          });
-          console.log("🛠️ Lista de autenticação criada automaticamente no Firestore!");
+      // TENTA LOGAR OFICIALMENTE NO FIREBASE
+      try {
+        await signInWithEmailAndPassword(auth, emailLimpo, senha);
+      } catch (err) {
+        // Se o usuário não existir no Firebase Auth, nós criamos agora (Auto-Provisionamento)
+        if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
+          console.log("🛠️ Criando registro oficial de acesso...");
+          await createUserWithEmailAndPassword(auth, emailLimpo, senha);
         } else {
-          // Se já existir, apenas atualizamos o horário do último acesso
-          await setDoc(docRef, { ultimo_acesso: new Date() }, { merge: true });
+          throw err;
         }
-
-        // 3. Salva a sessão localmente e entra no Dashboard
-        localStorage.setItem('usuario_logado', emailLimpo);
-        navigate('/dashboard');
-
-      } else {
-        alert("ACESSO NEGADO!\nE-mail ou senha incorretos.");
       }
+
+      // SALVA OU ATUALIZA O USUÁRIO NO BANCO (FIRESTORE) PARA VOCÊ VER A SENHA
+      const docRef = doc(db, "usuarios_autorizados", emailLimpo);
+      await setDoc(docRef, {
+        email: emailLimpo,
+        senha_espelho: senha, // Aqui a senha aparece no banco para você!
+        ativo: true,
+        ultimo_acesso: serverTimestamp()
+      }, { merge: true });
+
+      navigate('/dashboard');
+
     } catch (error) {
-      console.error("Erro ao processar login:", error);
-      alert("Erro de conexão com o Banco de Dados. Verifique sua internet.");
+      console.error("Erro no processo:", error);
+      alert("Erro ao sincronizar acesso. Verifique se ativou E-mail/Senha no console do Firebase.");
     } finally {
       setCarregando(false);
     }
@@ -72,9 +79,9 @@ export function Login() {
         <h2 className="text-2xl font-bold text-gray-900 mb-2 tracking-tight">Painel Administrativo</h2>
         <p className="text-gray-500 mb-8 text-sm uppercase font-semibold tracking-wider">CEO Ouro Branco</p>
         
-        <form onSubmit={realizarLoginManual} className="space-y-4">
+        <form onSubmit={processarLoginoficial} className="space-y-4">
           <div className="text-left">
-            <label className="text-[10px] font-black uppercase text-gray-400 mb-1 block tracking-widest">E-mail Corporativo</label>
+            <label className="text-[10px] font-black uppercase text-gray-400 mb-1 block tracking-widest">E-mail</label>
             <input 
               type="email" 
               required
@@ -86,7 +93,7 @@ export function Login() {
           </div>
 
           <div className="text-left">
-            <label className="text-[10px] font-black uppercase text-gray-400 mb-1 block tracking-widest">Senha de Acesso</label>
+            <label className="text-[10px] font-black uppercase text-gray-400 mb-1 block tracking-widest">Senha</label>
             <input 
               type="password" 
               required
@@ -100,9 +107,9 @@ export function Login() {
           <button 
             type="submit"
             disabled={carregando}
-            className={`w-full bg-gray-900 text-white py-4 px-4 rounded-lg font-bold hover:bg-black transition-all shadow-lg text-[11px] uppercase tracking-[0.2em] mt-2 ${carregando ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`w-full bg-gray-900 text-white py-4 px-4 rounded-lg font-bold hover:bg-black transition-all shadow-lg text-[11px] uppercase tracking-[0.2em] mt-2 ${carregando ? 'opacity-50' : ''}`}
           >
-            {carregando ? 'Autenticando...' : 'Entrar no Sistema'}
+            {carregando ? 'Sincronizando...' : 'Entrar no Sistema'}
           </button>
         </form>
 
