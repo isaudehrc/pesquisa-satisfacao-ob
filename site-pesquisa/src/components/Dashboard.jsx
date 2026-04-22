@@ -36,8 +36,6 @@ export function Dashboard() {
   };
 
   // --- FUNÇÕES DE TRATAMENTO DE TEXTO ---
-  
-  // 1. Corrige a Data para o padrão Brasileiro dd/mm/aaaa
   const formatarDataBR = (dataISO) => {
     if (!dataISO) return "N/I";
     const [ano, mes, dia] = dataISO.split('-');
@@ -47,12 +45,13 @@ export function Dashboard() {
   const traduzirValor = (valor) => {
     const mapas = {
       'excelente': 'Excelente', 'muito_bom': 'Muito Bom', 'bom': 'Bom', 'regular': 'Regular', 'ruim': 'Ruim',
-      'totalmente': 'Atendeu totalmente às suas necessidades', 'parcialmente': 'Atendeu parcialmente', 'nao_atendeu': 'Não atendeu',
+      'totalmente': 'Atendeu totalmente', 'parcialmente': 'Atendeu parcialmente', 'nao_atendeu': 'Não atendeu',
       'sim': 'Sim', 'nao': 'Não'
     };
     return mapas[valor] || valor;
   };
 
+  // --- MATEMÁTICA E KPIs ---
   const mediaEstrelas = fichas.length > 0 
     ? (fichas.reduce((acc, ficha) => acc + Number(ficha.satisfacao_geral_estrelas || 0), 0) / fichas.length).toFixed(1)
     : 0;
@@ -64,6 +63,32 @@ export function Dashboard() {
     { nota: '2 Estrelas', quantidade: fichas.filter(f => f.satisfacao_geral_estrelas === '2').length },
     { nota: '1 Estrela',  quantidade: fichas.filter(f => f.satisfacao_geral_estrelas === '1').length },
   ];
+
+  // A MÁGICA DA IDADE ESTÁ DE VOLTA!
+  const calcularIdade = (dataNascimento) => {
+    if (!dataNascimento) return "N/I";
+    const hoje = new Date();
+    const nascimento = new Date(dataNascimento);
+    let idade = hoje.getFullYear() - nascimento.getFullYear();
+    const mes = hoje.getMonth() - nascimento.getMonth();
+    if (mes < 0 || (mes === 0 && hoje.getDate() < nascimento.getDate())) idade--;
+    return idade;
+  };
+
+  const idadesValidas = fichas.map(f => calcularIdade(f.dataNascimento)).filter(i => i !== "N/I" && !isNaN(i));
+  let perfilPrincipal = "Não avaliado";
+  let mediaIdade = 0;
+
+  if (idadesValidas.length > 0) {
+    const somaIdades = idadesValidas.reduce((a, b) => a + b, 0);
+    mediaIdade = Math.round(somaIdades / idadesValidas.length);
+    const grupos = {
+      "Jovens (Até 19)": idadesValidas.filter(i => i <= 19).length,
+      "Adultos (20 a 59)": idadesValidas.filter(i => i >= 20 && i <= 59).length,
+      "Idosos (60+)": idadesValidas.filter(i => i >= 60).length,
+    };
+    perfilPrincipal = Object.keys(grupos).reduce((a, b) => grupos[a] > grupos[b] ? a : b);
+  }
 
   if (carregando) return <div className="p-10 text-center text-gray-500 font-medium tracking-widest uppercase">Sincronizando Dados...</div>;
 
@@ -82,7 +107,7 @@ export function Dashboard() {
           </button>
         </div>
 
-        {/* CARDS KPI */}
+        {/* CARDS KPI COM O PÚBLICO PRINCIPAL RESTAURADO */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
           <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 flex flex-col items-center">
             <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-2">Total de Avaliações</span>
@@ -95,13 +120,31 @@ export function Dashboard() {
               <span className="text-xl text-yellow-500">★</span>
             </div>
           </div>
-          <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 flex flex-col items-center">
-            <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-2">Status da Rede</span>
-            <span className="text-lg font-black text-green-600 uppercase tracking-tighter">Conectado</span>
+          
+          {/* Card do KPI Chique de Idades */}
+          <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 flex flex-col items-center relative overflow-hidden">
+            <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-2">Público Principal</span>
+            <span className="text-2xl font-black text-blue-600 uppercase text-center">{perfilPrincipal}</span>
+            {idadesValidas.length > 0 && (
+              <span className="text-[10px] text-gray-400 font-bold uppercase mt-2 tracking-widest">Idade Média: {mediaIdade} anos</span>
+            )}
           </div>
         </div>
 
-        {/* TABELA DE REGISTROS */}
+        {/* GRÁFICO E TABELA DA DASHBOARD */}
+        <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 h-64 mb-8">
+          <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-4 block text-center">Distribuição de Notas (Volume)</span>
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={distribuicaoNotas} layout="vertical" margin={{ top: 0, right: 0, left: 10, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f0f0f0" />
+              <XAxis type="number" hide />
+              <YAxis dataKey="nota" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#6b7280' }} width={60} />
+              <Tooltip cursor={{ fill: '#f9fafb' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+              <Bar dataKey="quantidade" fill="#1f2937" radius={[0, 4, 4, 0]} barSize={16} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
         <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200">
           <div className="bg-gray-900 p-4">
             <h2 className="text-white text-xs font-bold uppercase tracking-widest">Últimos Registros</h2>
@@ -141,11 +184,10 @@ export function Dashboard() {
       </div>
 
       {/* ========================================================== */}
-      {/* MODAL DE VISUALIZAÇÃO COMPACTO (AJUSTADO PARA 100% DE ZOOM) */}
+      {/* MODAL COMPACTO (100% ZOOM) COM DATA BR E TRADUÇÕES */}
       {/* ========================================================== */}
       {fichaAberta && (
         <div className="fixed inset-0 bg-gray-900 bg-opacity-80 z-50 flex justify-center items-center p-4 backdrop-blur-sm overflow-y-auto">
-          {/* Ajuste de Largura: de 2xl para xl e padding reduzido para caber melhor */}
           <div className="bg-white max-w-xl w-full rounded-xl shadow-2xl relative my-4 overflow-hidden border-t-8 border-gray-900">
             
             <button 
@@ -159,7 +201,6 @@ export function Dashboard() {
               <h2 className="text-lg font-black text-gray-900 uppercase tracking-widest">Detalhes da Avaliação</h2>
             </div>
 
-            {/* Reduzi o padding interno de p-8 para p-6 */}
             <div className="p-6 space-y-6">
               
               {/* 1. DADOS GERAIS */}
@@ -176,7 +217,6 @@ export function Dashboard() {
                   </div>
                   <div>
                     <p className="text-[9px] font-bold text-gray-400 uppercase tracking-tighter">Data Nasc. (BR)</p>
-                    {/* AQUI ESTÁ A CORREÇÃO DA DATA */}
                     <p className="text-xs font-bold text-gray-800">{formatarDataBR(fichaAberta.dataNascimento)}</p>
                   </div>
                   <div>
