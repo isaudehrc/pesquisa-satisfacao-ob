@@ -1,25 +1,15 @@
 import React from 'react';
 
-export function SugestoesEAssinatura({ formData, setFormData }) {
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
+export function SugestoesEAssinatura() {
   return (
     <div className="border-t border-gray-300 pt-6 mb-8">
-      {/* Título Padronizado: 5 */}
-      <h3 className="text-lg font-extrabold text-black mb-4 tracking-tight">
-        5. Observações e Sugestões
-      </h3>
+      <h3 className="text-lg font-extrabold text-black mb-4 tracking-tight">5. Observações e Sugestões</h3>
       
       <p className="text-sm text-gray-800 mb-2 font-bold">
         Tem alguma sugestão, elogio ou reclamação que gostaria de deixar? (Opcional)
       </p>
       <textarea
         name="sugestoes"
-        value={formData.sugestoes || ''}
-        onChange={handleChange}
         rows="4"
         className="w-full border border-gray-400 p-3 rounded-md text-sm text-gray-800 bg-white resize-none focus:outline-none focus:ring-2 focus:ring-gray-900 mb-6"
         placeholder="Digite sua mensagem aqui..."
