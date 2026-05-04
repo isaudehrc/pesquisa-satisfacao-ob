@@ -3,7 +3,8 @@ import React from 'react';
 export function SugestoesEAssinatura() {
   return (
     <div className="border-t border-gray-300 pt-6 mb-8">
-      <h3 className="text-lg font-extrabold text-black mb-4 tracking-tight">5. Observações e Sugestões</h3>
+      {/* Ajustado para Seção 6 para seguir a nova cronologia do formulário */}
+      <h3 className="text-lg font-extrabold text-black mb-4 tracking-tight">6. Observações e Sugestões</h3>
       
       <p className="text-sm text-gray-800 mb-2 font-bold">
         Tem alguma sugestão, elogio ou reclamação que gostaria de deixar? (Opcional)
