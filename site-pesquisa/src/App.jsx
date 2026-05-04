@@ -28,11 +28,10 @@ function App() {
   const enviarParaFirebase = async (dadosFinais) => {
     setEnviando(true);
     
-    // --- LIMPEZA DO MUNICÍPIO (A MÁGICA DE ENGENHARIA) ---
+    // --- LIMPEZA DO MUNICÍPIO ---
     const regexInvalido = /[^a-zA-ZÀ-ÿ\s-]/; 
     let municipioLimpo = dadosFinais.municipio ? dadosFinais.municipio.trim() : "";
     
-    // Se estiver vazio ou contiver números/símbolos, vira "Não informado"
     if (municipioLimpo === "" || regexInvalido.test(municipioLimpo)) {
       municipioLimpo = "Não informado";
     }
@@ -66,18 +65,21 @@ function App() {
     const data = Object.fromEntries(formData.entries());
 
     const erros = [];
+    // ADICIONADO 'recomendacao_nps' À LISTA DE OBRIGATÓRIOS
     const obrigatorios = [
       'dataNascimento', 'sexo', 'municipio', 
       'cordialidade', 'clareza', 'acesso', 'tempo', 'ambiente', 
-      'atendimento_necessidades', 'compreensao_orientacoes' 
+      'atendimento_necessidades', 'compreensao_orientacoes',
+      'recomendacao_nps' 
     ];
 
     obrigatorios.forEach(campo => {
-      if (!data[campo] || data[campo].trim() === '') {
+      if (data[campo] === undefined || data[campo] === null || data[campo].toString().trim() === '') {
         erros.push(campo);
       }
     });
 
+    // VALIDAÇÃO DAS ESTRELAS (1-5)
     if (!data['satisfacao_geral_estrelas'] || data['satisfacao_geral_estrelas'] === '0') {
       erros.push('satisfacao_geral_estrelas');
     }
