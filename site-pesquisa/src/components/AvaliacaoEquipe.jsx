@@ -19,11 +19,12 @@ export function AvaliacaoEquipe({ erros = [] }) {
           <thead className="border-b border-gray-400">
             <tr>
               <th className="py-2 px-2 font-bold min-w-[200px]">Itens</th>
-              <th className="py-2 px-2 text-center font-bold">Excelente</th>
-              <th className="py-2 px-2 text-center font-bold">Muito Bom</th>
-              <th className="py-2 px-2 text-center font-bold">Bom</th>
-              <th className="py-2 px-2 text-center font-bold">Regular</th>
-              <th className="py-2 px-2 text-center font-bold">Ruim</th>
+              {/* RÓTULOS BALANCEADOS CONFORME SOLICITADO */}
+              <th className="py-2 px-2 text-center font-bold text-[10px] uppercase">Muito Bom</th>
+              <th className="py-2 px-2 text-center font-bold text-[10px] uppercase">Bom</th>
+              <th className="py-2 px-2 text-center font-bold text-[10px] uppercase">Regular</th>
+              <th className="py-2 px-2 text-center font-bold text-[10px] uppercase">Ruim</th>
+              <th className="py-2 px-2 text-center font-bold text-[10px] uppercase">Muito Ruim</th>
             </tr>
           </thead>
           <tbody>
@@ -32,9 +33,8 @@ export function AvaliacaoEquipe({ erros = [] }) {
               return (
                 <tr key={item.id} className={temErro ? 'bg-red-50 border-l-4 border-red-500' : (index % 2 === 0 ? 'bg-gray-50' : 'bg-white')}>
                   <td className={`py-3 px-2 border-b border-gray-200 ${temErro ? 'text-red-600 font-bold' : ''}`}>{item.texto}</td>
-                  <td className="text-center py-3 border-b border-gray-200">
-                    <input type="radio" name={item.id} value="excelente" className="w-5 h-5 accent-black cursor-pointer" />
-                  </td>
+                  
+                  {/* VALORES MANTIDOS PARA O DASHBOARD NÃO QUEBRAR */}
                   <td className="text-center py-3 border-b border-gray-200">
                     <input type="radio" name={item.id} value="muito_bom" className="w-5 h-5 accent-black cursor-pointer" />
                   </td>
@@ -46,6 +46,9 @@ export function AvaliacaoEquipe({ erros = [] }) {
                   </td>
                   <td className="text-center py-3 border-b border-gray-200">
                     <input type="radio" name={item.id} value="ruim" className="w-5 h-5 accent-black cursor-pointer" />
+                  </td>
+                  <td className="text-center py-3 border-b border-gray-200">
+                    <input type="radio" name={item.id} value="muito_ruim" className="w-5 h-5 accent-black cursor-pointer" />
                   </td>
                 </tr>
               );
