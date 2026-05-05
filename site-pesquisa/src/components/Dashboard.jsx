@@ -5,6 +5,49 @@ import { signOut, onAuthStateChanged } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 
+// --- MATEMÁTICA DO VELOCÍMETRO (GAUGE) E DA ROSQUINHA ---
+const RADIAN = Math.PI / 180;
+
+const Needle = ({ value, cx, cy, iR, oR, color }) => {
+  let total = 200; // Escala do NPS vai de -100 a +100 (range de 200)
+  const mappedValue = value + 100; // Converte para escala de 0 a 200
+  const clampedValue = Math.max(0, Math.min(200, mappedValue)); // Trava o ponteiro
+  const ang = 180.0 * (1 - clampedValue / total);
+  const length = (iR + 2 * oR) / 3;
+  const sin = Math.sin(-RADIAN * ang);
+  const cos = Math.cos(-RADIAN * ang);
+  const r = 6;
+  const x0 = cx;
+  const y0 = cy;
+  const xba = x0 + r * sin;
+  const yba = y0 - r * cos;
+  const xbb = x0 - r * sin;
+  const ybb = y0 + r * cos;
+  const xp = x0 + length * cos;
+  const yp = y0 + length * sin;
+
+  return (
+    <g>
+      <circle cx={x0} cy={y0} r={r} fill={color} stroke="none" />
+      <path d={`M${xba} ${yba}L${xbb} ${ybb} L${xp} ${yp} L${xba} ${yba}`} stroke="#none" fill={color} />
+    </g>
+  );
+};
+
+const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
+  const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+  const x = cx + radius * Math.cos(-midAngle * RADIAN);
+  const y = cy + radius * Math.sin(-midAngle * RADIAN);
+  
+  if (percent < 0.05) return null; // Oculta a % se for uma fatia minúscula
+  
+  return (
+    <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" fontSize={11} fontWeight="bold" className="drop-shadow-md">
+      {`${(percent * 100).toFixed(0)}%`}
+    </text>
+  );
+};
+
 export function Dashboard() {
   const [fichas, setFichas] = useState([]);
   const [carregando, setCarregando] = useState(true);
@@ -46,9 +89,9 @@ export function Dashboard() {
   // --- MOTOR HÍBRIDO: Converte texto antigo para número (1 a 5) ---
   const getValorNumerico = (valor) => {
     if (!valor) return null;
-    if (!isNaN(valor)) return Number(valor); // Se já for número (novo form)
+    if (!isNaN(valor)) return Number(valor); 
     const mapa = { 'muito_bom': 5, 'bom': 4, 'regular': 3, 'ruim': 2, 'muito_ruim': 1 };
-    return mapa[valor] || null; // Converte form antigo
+    return mapa[valor] || null; 
   };
 
   // --- CÁLCULOS BI CALIBRADOS ---
@@ -61,11 +104,12 @@ export function Dashboard() {
   const neutros = fichas.length - promotores - detratores;
   const npsScore = fichas.length > 0 ? Math.round(((promotores - detratores) / fichas.length) * 100) : 0;
 
-  const dadosNPS = [
-    { name: 'Promotores', value: promotores, color: '#10B981' },
-    { name: 'Neutros', value: neutros, color: '#FBBF24' },
-    { name: 'Detratores', value: detratores, color: '#EF4444' }
-  ].filter(d => d.value > 0);
+  // Escala fixa do background do Velocímetro (NPS: -100 a 100)
+  const dataGauge = [
+    { name: 'Crítico (-100 a 0)', value: 100, color: '#EF4444' }, // Vermelho
+    { name: 'Atenção (0 a 50)', value: 50, color: '#FBBF24' },   // Amarelo
+    { name: 'Excelência (50 a 100)', value: 50, color: '#10B981' } // Verde
+  ];
 
   const distribuicaoNotas = [
     { nota: '5 ★', quantidade: fichas.filter(f => Number(f.satisfacao_geral_estrelas) === 5).length },
@@ -90,7 +134,7 @@ export function Dashboard() {
     { nome: 'Canais de Contato', media: Number(calcularMediaItem('contato')) },
     { nome: 'Tempo de Espera', media: Number(calcularMediaItem('tempo')) },
     { nome: 'Horários', media: Number(calcularMediaItem('horario')) },
-  ].filter(item => item.media > 0).sort((a, b) => b.media - a.media); // Ordena do melhor pro pior
+  ].filter(item => item.media > 0).sort((a, b) => b.media - a.media); 
 
   // --- DEMOGRAFIA HÍBRIDA (Faixa Etária + Antiga Data Nascimento) ---
   const obterFaixaEtaria = (ficha) => {
@@ -121,10 +165,6 @@ export function Dashboard() {
   const coresFaixa = ['#14B8A6', '#3B82F6', '#6366F1', '#8B5CF6', '#EC4899', '#F59E0B'];
   const dadosIdade = Object.keys(faixasCount).map((key, index) => ({ name: key, value: faixasCount[key], color: coresFaixa[index % coresFaixa.length] }));
   const perfilPrincipal = dadosIdade.length > 0 ? dadosIdade.reduce((a, b) => a.value > b.value ? a : b).name : "Sem dados";
-
-  const fem = fichas.filter(f => f.sexo === 'Feminino').length;
-  const masc = fichas.filter(f => f.sexo === 'Masculino').length;
-  const dadosSexo = [{ name: 'Feminino', value: fem, color: '#EC4899' }, { name: 'Masculino', value: masc, color: '#3B82F6' }].filter(d => d.value > 0);
 
   if (carregando) return <div className="p-10 text-center text-gray-500 font-medium tracking-widest uppercase">Sincronizando Dados...</div>;
 
@@ -161,7 +201,7 @@ export function Dashboard() {
           </div>
         </div>
 
-        {/* NOVA LINHA: O RANKING OPERACIONAL (Dash dos Sonhos) */}
+        {/* RANKING OPERACIONAL (Dash dos Sonhos) */}
         {dadosEquipe.length > 0 && (
           <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 h-80 mb-6">
             <span className="block text-xs font-black uppercase tracking-widest mb-4 text-center">Desempenho Operacional (Média de 1 a 5)</span>
@@ -177,24 +217,54 @@ export function Dashboard() {
           </div>
         )}
 
-        {/* GRAFICOS */}
+        {/* GRAFICOS COM OS NOVOS ESTILOS (GAUGE E PORCENTAGEM) */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          
+          {/* 1. VELOCÍMETRO NPS */}
+          <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 h-72 flex flex-col items-center relative">
+            <span className="text-xs font-black uppercase tracking-widest mb-2 text-center w-full">Lealdade (NPS)</span>
+            <div className="flex justify-center items-center w-full h-full relative">
+              <PieChart width={300} height={180}>
+                <Pie data={dataGauge} cx={150} cy={140} startAngle={180} endAngle={0} innerRadius={70} outerRadius={100} dataKey="value" stroke="none">
+                  {dataGauge.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                </Pie>
+                {/* A agulha do velocímetro sendo renderizada */}
+                <Needle value={npsScore} cx={150} cy={140} iR={70} oR={100} color="#1f2937" />
+              </PieChart>
+              <div className="absolute bottom-6 w-full text-center flex flex-col items-center">
+                <span className={`text-4xl font-black tracking-tighter ${npsScore >= 50 ? 'text-green-500' : npsScore >= 0 ? 'text-yellow-500' : 'text-red-500'}`}>{npsScore}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* 2. ROSQUINHA COM PORCENTAGEM (Faixa Etária) */}
           <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 h-72 flex flex-col items-center">
-            <span className="text-xs font-black uppercase tracking-widest mb-4">Lealdade (NPS)</span>
+            <span className="text-xs font-black uppercase tracking-widest mb-2">Faixa Etária</span>
             <ResponsiveContainer width="100%" height="100%">
-              <PieChart><Pie data={dadosNPS} innerRadius="60%" outerRadius="80%" paddingAngle={5} dataKey="value" stroke="none">{dadosNPS.map((entry, index) => <Cell key={index} fill={entry.color} />)}</Pie><Tooltip /><Legend iconType="circle" wrapperStyle={{ fontSize: '10px' }} /></PieChart>
+              <PieChart>
+                <Pie 
+                  data={dadosIdade} 
+                  innerRadius="45%" 
+                  outerRadius="80%" 
+                  paddingAngle={2} 
+                  dataKey="value" 
+                  stroke="none"
+                  labelLine={false} 
+                  label={renderCustomizedLabel} 
+                >
+                  {dadosIdade.map((entry, index) => <Cell key={index} fill={entry.color} />)}
+                </Pie>
+                <Tooltip />
+                <Legend iconType="circle" wrapperStyle={{ fontSize: '10px' }} />
+              </PieChart>
             </ResponsiveContainer>
           </div>
-          <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 h-72 flex flex-col items-center">
-            <span className="text-xs font-black uppercase tracking-widest mb-4">Faixa Etária</span>
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart><Pie data={dadosIdade} innerRadius="50%" outerRadius="80%" paddingAngle={5} dataKey="value" stroke="none">{dadosIdade.map((entry, index) => <Cell key={index} fill={entry.color} />)}</Pie><Tooltip /><Legend iconType="circle" wrapperStyle={{ fontSize: '10px' }} /></PieChart>
-            </ResponsiveContainer>
-          </div>
+
+          {/* 3. DISTRIBUIÇÃO ESTRELAS */}
           <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 h-72">
             <span className="block text-xs font-black uppercase tracking-widest mb-4 text-center">Volume de Estrelas</span>
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={distribuicaoNotas} layout="vertical"><CartesianGrid strokeDasharray="3 3" horizontal={false} /><XAxis type="number" hide /><YAxis dataKey="nota" type="category" tick={{ fontSize: 10 }} width={40} /><Tooltip /><Bar dataKey="quantidade" fill="#1f2937" radius={[0, 4, 4, 0]} /></BarChart>
+              <BarChart data={distribuicaoNotas} layout="vertical" margin={{ left: -10 }}><CartesianGrid strokeDasharray="3 3" horizontal={false} /><XAxis type="number" hide /><YAxis dataKey="nota" type="category" tick={{ fontSize: 10 }} width={40} /><Tooltip /><Bar dataKey="quantidade" fill="#1f2937" radius={[0, 4, 4, 0]} /></BarChart>
             </ResponsiveContainer>
           </div>
         </div>
