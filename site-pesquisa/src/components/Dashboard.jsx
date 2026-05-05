@@ -61,6 +61,7 @@ export function Dashboard() {
   }, [navigate]);
 
   useEffect(() => {
+    // Aqui garantimos o LIFO (Last In First Out) com orderBy desc
     const q = query(collection(db, 'fichas_avaliacao'), orderBy('data_envio', 'desc'));
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const listaFichas = [];
@@ -90,6 +91,13 @@ export function Dashboard() {
     if (!isNaN(valor)) return Number(valor); 
     const mapa = { 'muito_bom': 5, 'bom': 4, 'regular': 3, 'ruim': 2, 'muito_ruim': 1 };
     return mapa[valor] || null; 
+  };
+
+  // --- FUNÇÃO PARA TRAVAR NOME DO RESPONDENTE NA TABELA ---
+  const formatarRespondenteTabela = (texto) => {
+    const str = String(texto || '').toLowerCase();
+    if (str.includes('responsável') || str.includes('responsavel') || str.includes('familiar')) return 'RESPONSÁVEL';
+    return 'PACIENTE';
   };
 
   // --- 1. CÁLCULOS DOS KPIs ---
@@ -180,8 +188,8 @@ export function Dashboard() {
     else if (gen.includes('fem')) generos.fem++;
     else generos.outro++;
 
-    const resp = String(f.quem_responde || f.tipo_respondente || f.respondente || '').toLowerCase();
-    if (resp.includes('responsável') || resp.includes('responsavel') || resp.includes('familiar')) respondentes.responsavel++;
+    const resp = formatarRespondenteTabela(f.quem_responde || f.tipo_respondente || f.respondente);
+    if (resp === 'RESPONSÁVEL') respondentes.responsavel++;
     else respondentes.paciente++;
   });
 
@@ -232,7 +240,6 @@ export function Dashboard() {
               <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">Satisfação Média</span>
               <span className="text-gray-300 bg-gray-50 rounded-full w-4 h-4 flex items-center justify-center text-[8px] font-bold border border-gray-100 cursor-pointer">i</span>
             </div>
-            {/* NOVO BALÃO EXPLICATIVO PADRONIZADO (ZONAS DE SATISFAÇÃO) */}
             <div className="absolute top-10 z-30 invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-300 bg-gray-900 text-white p-4 rounded-lg shadow-2xl w-64 text-xs pointer-events-none border border-gray-700">
               <p className="font-black border-b border-gray-700 pb-2 mb-3 text-gray-300 uppercase tracking-wider text-[10px]">Zonas de Satisfação (1 a 5)</p>
               <ul className="space-y-3">
@@ -248,9 +255,12 @@ export function Dashboard() {
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 flex flex-col items-center text-center">
-            <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-2">Público Dominante</span>
-            <span className="text-xl font-black text-blue-600 uppercase leading-tight">{perfilPrincipal}</span>
+          {/* KPI ATUALIZADO: IDADE DO PÚBLICO DOMINANTE */}
+          <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 flex flex-col items-center justify-center text-center">
+            <span className="text-gray-900 text-[11px] font-bold uppercase tracking-widest mb-2">
+              Idade do <span className="text-gray-400">Público Dominante</span>
+            </span>
+            <span className="text-2xl font-black text-blue-600 uppercase leading-tight">{perfilPrincipal}</span>
           </div>
         </div>
 
@@ -333,10 +343,9 @@ export function Dashboard() {
           </div>
         </div>
 
-        {/* 4. PERFIL DO PÚBLICO (DEMOGRAFIA COMPLETA) */}
+        {/* 4. PERFIL DO PÚBLICO */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
-          
-          <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 h-72 flex flex-col items-center col-span-1 lg:col-span-1">
+          <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 h-72 flex flex-col items-center col-span-1">
             <span className="text-xs font-black uppercase tracking-widest mb-2">Gênero</span>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -349,7 +358,7 @@ export function Dashboard() {
             </ResponsiveContainer>
           </div>
 
-          <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 h-72 flex flex-col items-center col-span-1 lg:col-span-1">
+          <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 h-72 flex flex-col items-center col-span-1">
             <span className="text-xs font-black uppercase tracking-widest mb-2">Quem Respondeu</span>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -362,7 +371,7 @@ export function Dashboard() {
             </ResponsiveContainer>
           </div>
 
-          <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 h-72 flex flex-col items-center col-span-1 lg:col-span-1">
+          <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 h-72 flex flex-col items-center col-span-1">
             <span className="text-xs font-black uppercase tracking-widest mb-2">Faixa Etária</span>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -375,29 +384,41 @@ export function Dashboard() {
             </ResponsiveContainer>
           </div>
 
-          <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 h-72 col-span-1 lg:col-span-1">
+          <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 h-72 col-span-1">
             <span className="block text-xs font-black uppercase tracking-widest mb-4 text-center">Volume de Estrelas</span>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={distribuicaoNotas} layout="vertical" margin={{ left: -10 }}><CartesianGrid strokeDasharray="3 3" horizontal={false} /><XAxis type="number" hide /><YAxis dataKey="nota" type="category" tick={{ fontSize: 10 }} width={40} /><Tooltip /><Bar dataKey="quantidade" fill="#1f2937" radius={[0, 4, 4, 0]} /></BarChart>
             </ResponsiveContainer>
           </div>
-
         </div>
 
-        {/* 5. TABELA LGPD MANTIDA COMO ESTÁ */}
+        {/* 5. TABELA LGPD (BASE DE DADOS ATUALIZADA) */}
         <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200">
-          <div className="bg-gray-900 p-4 text-white text-xs font-bold uppercase tracking-widest">Base de Dados Anonimizada</div>
+          <div className="bg-[#111827] p-4 text-white text-xs font-bold uppercase tracking-widest">Base de Dados</div>
           <table className="w-full text-left text-sm">
-            <thead className="bg-gray-50 text-gray-500 uppercase text-[10px] font-bold border-b">
-              <tr><th className="p-4">Data</th><th className="p-4">Respondente</th><th className="p-4">Faixa Etária</th><th className="p-4 text-center">Ação</th></tr>
+            <thead className="bg-white text-gray-500 uppercase text-[10px] font-bold border-b border-gray-200">
+              <tr>
+                <th className="p-4">Data</th>
+                <th className="p-4">Respondente</th>
+                <th className="p-4">Faixa Etária</th>
+                <th className="p-4 text-center">Ação</th>
+              </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {fichas.map((ficha) => (
-                <tr key={ficha.id} className="hover:bg-gray-50">
-                  <td className="p-4 text-gray-400 font-mono text-[11px]">{ficha.data_envio?.toDate().toLocaleDateString('pt-BR')}</td>
-                  <td className="p-4 font-bold uppercase text-xs text-gray-700">{ficha.respondente || "Paciente (Antigo)"}</td>
+                <tr key={ficha.id} className="hover:bg-gray-50 transition-colors">
+                  <td className="p-4 text-gray-400 font-mono text-[11px]">
+                    {ficha.data_envio?.toDate().toLocaleDateString('pt-BR')} às {ficha.data_envio?.toDate().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                  </td>
+                  <td className="p-4 font-bold uppercase text-xs text-gray-700">
+                    {formatarRespondenteTabela(ficha.respondente || ficha.quem_responde || ficha.tipo_respondente)}
+                  </td>
                   <td className="p-4 font-bold uppercase text-xs text-gray-500">{obterFaixaEtaria(ficha)}</td>
-                  <td className="p-4 text-center"><button onClick={() => setFichaAberta(ficha)} className="bg-gray-900 text-white text-[9px] font-bold py-2 px-4 rounded uppercase">Abrir Ficha</button></td>
+                  <td className="p-4 text-center">
+                    <button onClick={() => setFichaAberta(ficha)} className="bg-black text-white text-[10px] font-bold py-2 px-4 rounded shadow-md hover:bg-gray-800 transition-colors">
+                      Visualizar
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -417,7 +438,7 @@ export function Dashboard() {
               <section>
                 <h3 className="text-md font-extrabold mb-3 border-l-4 border-gray-900 pl-2 text-black">1. Perfil do Usuário</h3>
                 <div className="grid grid-cols-2 gap-3 bg-gray-50 p-3 rounded-lg border border-gray-100">
-                  <div><p className="text-[9px] font-bold text-gray-400 uppercase">Respondente</p><p className="text-xs font-bold uppercase">{fichaAberta.respondente || "Paciente (Antigo)"}</p></div>
+                  <div><p className="text-[9px] font-bold text-gray-400 uppercase">Respondente</p><p className="text-xs font-bold uppercase">{formatarRespondenteTabela(fichaAberta.respondente || fichaAberta.quem_responde || fichaAberta.tipo_respondente)}</p></div>
                   <div><p className="text-[9px] font-bold text-gray-400 uppercase">Faixa Etária</p><p className="text-xs font-bold uppercase">{obterFaixaEtaria(fichaAberta)}</p></div>
                   <div><p className="text-[9px] font-bold text-gray-400 uppercase">Município</p><p className="text-xs font-bold uppercase">{fichaAberta.municipio || "N/I"}</p></div>
                   <div><p className="text-[9px] font-bold text-gray-400 uppercase">Gênero</p><p className="text-xs font-bold uppercase">{fichaAberta.sexo || "Não informado"}</p></div>
