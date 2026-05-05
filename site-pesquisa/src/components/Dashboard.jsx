@@ -61,7 +61,6 @@ export function Dashboard() {
   }, [navigate]);
 
   useEffect(() => {
-    // Aqui garantimos o LIFO (Last In First Out) com orderBy desc
     const q = query(collection(db, 'fichas_avaliacao'), orderBy('data_envio', 'desc'));
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const listaFichas = [];
@@ -93,7 +92,6 @@ export function Dashboard() {
     return mapa[valor] || null; 
   };
 
-  // --- FUNÇÃO PARA TRAVAR NOME DO RESPONDENTE NA TABELA ---
   const formatarRespondenteTabela = (texto) => {
     const str = String(texto || '').toLowerCase();
     if (str.includes('responsável') || str.includes('responsavel') || str.includes('familiar')) return 'RESPONSÁVEL';
@@ -164,14 +162,14 @@ export function Dashboard() {
     { name: 'Não Entendeu', value: compreensao.nao, color: '#1E3A8A' }
   ].filter(d => d.value > 0);
 
-  // --- 4. DEMOGRAFIA E ORIGEM DO TRÁFEGO ---
+  // --- 4. DEMOGRAFIA ---
   const obterFaixaEtaria = (ficha) => {
     if (ficha.faixaEtaria) return ficha.faixaEtaria;
     if (ficha.dataNascimento) {
       const hoje = new Date(); const nascimento = new Date(ficha.dataNascimento);
       let idade = hoje.getFullYear() - nascimento.getFullYear();
       if (idade <= 12) return 'Até 12'; if (idade <= 25) return '13 a 25';
-      if (idade <= 40) return '26 a 40'; if (idade <= 60) return '41 a 60'; return '60+';
+      if (idade <= 40) return '26 A 40'; if (idade <= 60) return '41 a 60'; return '60+';
     } return 'N/I';
   };
 
@@ -195,7 +193,7 @@ export function Dashboard() {
 
   const coresFaixa = ['#14B8A6', '#6366F1', '#8B5CF6', '#EC4899', '#F59E0B'];
   const dadosIdade = Object.keys(faixasCount).map((key, index) => ({ name: key, value: faixasCount[key], color: coresFaixa[index % coresFaixa.length] }));
-  const perfilPrincipal = dadosIdade.length > 0 ? dadosIdade.reduce((a, b) => a.value > b.value ? a : b).name : "Sem dados";
+  const perfilPrincipal = dadosIdade.length > 0 ? dadosIdade.reduce((a, b) => a.value > b.value ? a : b).name : "N/I";
 
   const dadosGenero = [
     { name: 'Feminino', value: generos.fem, color: '#EC4899' },
@@ -217,25 +215,25 @@ export function Dashboard() {
         {/* HEADER */}
         <div className="flex justify-between items-center mb-6 bg-white p-6 rounded-lg shadow-sm border-l-8 border-gray-900">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Painel Executivo CEO</h1>
-            <p className="text-xs text-gray-500 font-bold uppercase">Business Intelligence • Padrão LGPD</p>
+            <h1 className="text-2xl font-bold tracking-tight text-right">Painel Executivo CEO</h1>
+            <p className="text-xs text-gray-500 font-bold uppercase text-right">Business Intelligence • Padrão LGPD</p>
           </div>
           <button onClick={handleSair} className="bg-red-50 text-red-600 px-4 py-2 rounded font-bold hover:bg-red-100 text-[10px] uppercase border border-red-100">Sair</button>
         </div>
 
         {/* 1. KPIs EXECUTIVOS */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-          <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 flex flex-col items-center">
+          <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 flex flex-col items-center justify-center">
             <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-2">Total de Avaliações</span>
             <span className="text-5xl font-black">{fichas.length}</span>
           </div>
           
-          <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 flex flex-col items-center">
+          <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 flex flex-col items-center justify-center">
             <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-2">Lealdade (NPS)</span>
             <span className={`text-5xl font-black ${npsScore >= 50 ? 'text-green-500' : npsScore >= 0 ? 'text-yellow-500' : 'text-red-500'}`}>{npsScore}</span>
           </div>
 
-          <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 flex flex-col items-center relative group">
+          <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 flex flex-col items-center justify-center relative group">
             <div className="flex items-center gap-2 mb-2">
               <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">Satisfação Média</span>
               <span className="text-gray-300 bg-gray-50 rounded-full w-4 h-4 flex items-center justify-center text-[8px] font-bold border border-gray-100 cursor-pointer">i</span>
@@ -249,7 +247,7 @@ export function Dashboard() {
                 <li className="flex gap-2"><span className="text-green-400 font-bold min-w-[70px]">4.6 a 5.0:</span> <span>Excelência</span></li>
               </ul>
             </div>
-            <div className="flex items-baseline gap-2 mt-2">
+            <div className="flex items-baseline gap-2 mt-1">
               <span className="text-5xl font-black text-yellow-500">{mediaEstrelas}</span>
               <span className="text-xl text-yellow-500">★</span>
             </div>
@@ -257,10 +255,13 @@ export function Dashboard() {
 
           {/* KPI ATUALIZADO: IDADE DO PÚBLICO DOMINANTE */}
           <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 flex flex-col items-center justify-center text-center">
-            <span className="text-gray-900 text-[11px] font-bold uppercase tracking-widest mb-2">
-              Idade do <span className="text-gray-400">Público Dominante</span>
+            <div className="text-[11px] font-black uppercase tracking-widest mb-3 flex gap-1 justify-center w-full">
+              <span className="text-gray-900">Idade do</span>
+              <span className="text-gray-400">Público Dominante</span>
+            </div>
+            <span className="text-4xl font-black text-blue-600 uppercase leading-tight tracking-tight">
+              {perfilPrincipal.replace(/anos/i, '').trim()}
             </span>
-            <span className="text-2xl font-black text-blue-600 uppercase leading-tight">{perfilPrincipal}</span>
           </div>
         </div>
 
@@ -392,30 +393,41 @@ export function Dashboard() {
           </div>
         </div>
 
-        {/* 5. TABELA LGPD (BASE DE DADOS ATUALIZADA) */}
+        {/* 5. TABELA LGPD (BASE DE DADOS 100% CENTRALIZADA COM LUPA) */}
         <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200">
-          <div className="bg-[#111827] p-4 text-white text-xs font-bold uppercase tracking-widest">Base de Dados</div>
-          <table className="w-full text-left text-sm">
+          <div className="bg-[#111827] p-4 text-white text-xs font-bold uppercase tracking-widest text-right">
+            Base de Dados
+          </div>
+          <table className="w-full text-center text-sm">
             <thead className="bg-white text-gray-500 uppercase text-[10px] font-bold border-b border-gray-200">
               <tr>
-                <th className="p-4">Data</th>
-                <th className="p-4">Respondente</th>
-                <th className="p-4">Faixa Etária</th>
-                <th className="p-4 text-center">Ação</th>
+                <th className="p-4 text-center w-1/4">Data e Hora</th>
+                <th className="p-4 text-center w-1/4">Respondente</th>
+                <th className="p-4 text-center w-1/4">Faixa Etária</th>
+                <th className="p-4 text-center w-1/4">Ação</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {fichas.map((ficha) => (
                 <tr key={ficha.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="p-4 text-gray-400 font-mono text-[11px]">
+                  <td className="p-4 text-gray-400 font-mono text-[11px] text-center">
                     {ficha.data_envio?.toDate().toLocaleDateString('pt-BR')} às {ficha.data_envio?.toDate().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                   </td>
-                  <td className="p-4 font-bold uppercase text-xs text-gray-700">
+                  <td className="p-4 font-bold uppercase text-xs text-gray-700 text-center">
                     {formatarRespondenteTabela(ficha.respondente || ficha.quem_responde || ficha.tipo_respondente)}
                   </td>
-                  <td className="p-4 font-bold uppercase text-xs text-gray-500">{obterFaixaEtaria(ficha)}</td>
+                  <td className="p-4 font-bold uppercase text-xs text-gray-500 text-center">
+                    {obterFaixaEtaria(ficha)}
+                  </td>
                   <td className="p-4 text-center">
-                    <button onClick={() => setFichaAberta(ficha)} className="bg-black text-white text-[10px] font-bold py-2 px-4 rounded shadow-md hover:bg-gray-800 transition-colors">
+                    <button 
+                      onClick={() => setFichaAberta(ficha)} 
+                      className="bg-black text-white text-[10px] font-bold py-2 px-4 rounded shadow-md hover:bg-gray-800 transition-colors flex items-center justify-center mx-auto gap-2"
+                    >
+                      {/* Ícone de Lupa embutido (SVG Puro) */}
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
                       Visualizar
                     </button>
                   </td>
