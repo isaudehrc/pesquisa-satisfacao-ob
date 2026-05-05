@@ -16,10 +16,6 @@ function App() {
   const [camposComErro, setCamposComErro] = useState([]); 
   const [chaveReset, setChaveReset] = useState(0);
 
-  // ESTADOS PARA O MODO ANÔNIMO
-  const [mostrarModalAnonimo, setMostrarModalAnonimo] = useState(false);
-  const [dadosTemporarios, setDadosTemporarios] = useState(null);
-
   const handleLimpar = () => {
     setCamposComErro([]);
     setChaveReset(prev => prev + 1);
@@ -47,14 +43,13 @@ function App() {
         ...dadosTratados,
         data_envio: serverTimestamp() 
       });
-      alert("Avaliação enviada com sucesso! Muito obrigado.");
+      alert("Avaliação enviada com sucesso! Muito obrigado pela sua participação.");
       handleLimpar();
     } catch (error) {
       console.error("Erro ao enviar:", error);
-      alert("Ops! Houve um problema ao enviar.");
+      alert("Ops! Houve um problema ao enviar a avaliação.");
     } finally {
       setEnviando(false);
-      setMostrarModalAnonimo(false);
     }
   };
 
@@ -65,10 +60,11 @@ function App() {
     const data = Object.fromEntries(formData.entries());
 
     const erros = [];
-    // ADICIONADO 'recomendacao_nps' À LISTA DE OBRIGATÓRIOS
+    
+    // ATUALIZADO: Nova lista de campos obrigatórios com as Seções A, B e C (Padrão LGPD)
     const obrigatorios = [
-      'dataNascimento', 'sexo', 'municipio', 
-      'cordialidade', 'clareza', 'acesso', 'tempo', 'ambiente', 
+      'respondente', 'faixaEtaria', 'municipio', 'consentimento_lgpd', 
+      'cordialidade', 'clareza', 'tempo', 'contato', 'horario', 'limpeza', 'acessibilidade', 
       'atendimento_necessidades', 'compreensao_orientacoes',
       'recomendacao_nps' 
     ];
@@ -90,15 +86,8 @@ function App() {
       return;
     }
 
-    const nomeInformado = data.nome ? data.nome.trim() : "";
-    const regexNomeInvalido = /[^a-zA-ZÀ-ÿ\s-]/;
-
-    if (nomeInformado === "" || regexNomeInvalido.test(nomeInformado)) {
-      setDadosTemporarios(data);
-      setMostrarModalAnonimo(true);
-    } else {
-      enviarParaFirebase(data);
-    }
+    // Como o form já é anônimo e validado, enviamos direto!
+    enviarParaFirebase(data);
   };
 
   return (
@@ -124,19 +113,6 @@ function App() {
             </button>
           </div>
         </form>
-
-        {mostrarModalAnonimo && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
-            <div className="bg-white p-7 rounded-lg max-w-sm w-full shadow-2xl border-t-4 border-gray-900 text-center">
-              <h4 className="font-bold text-xl mb-3 text-gray-900">Identificação</h4>
-              <p className="text-gray-600 mb-6">Não identificamos um Nome válido. Deseja enviar de forma anônima?</p>
-              <div className="flex justify-center gap-4">
-                <button onClick={() => setMostrarModalAnonimo(false)} className="px-4 py-2 text-gray-400 font-bold hover:text-black uppercase text-xs">Voltar</button>
-                <button onClick={() => enviarParaFirebase({ ...dadosTemporarios, nome: "Anônimo" })} className="px-6 py-3 bg-gray-900 text-white font-bold rounded-md hover:bg-gray-800 uppercase text-xs shadow-lg">Sim, Anônimo</button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
