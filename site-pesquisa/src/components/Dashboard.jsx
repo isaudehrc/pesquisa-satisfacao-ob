@@ -14,7 +14,7 @@ const Needle = ({ value, cx, cy, oR, color }) => {
   const clampedValue = Math.max(0, Math.min(200, mappedValue)); 
   const ang = 180.0 * (1 - clampedValue / total);
   
-  // O ponteiro agora vai exatamente até a borda externa (outerRadius)
+  // O ponteiro agora vai EXATAMENTE até a borda externa (outerRadius)
   const length = oR; 
   
   const sin = Math.sin(-RADIAN * ang);
@@ -23,21 +23,24 @@ const Needle = ({ value, cx, cy, oR, color }) => {
   const x0 = cx;
   const y0 = cy;
   
-  // Base do ponteiro
-  const r = 8; 
+  // Base do ponteiro (Afinada para parecer mais ágil)
+  const r = 7; 
   const xba = x0 + r * sin;
   const yba = y0 - r * cos;
   const xbb = x0 - r * sin;
   const ybb = y0 + r * cos;
   
-  // Ponta do ponteiro (Fina e longa como painel de carro)
+  // Ponta do ponteiro vetorizado
   const xp = x0 + length * cos;
   const yp = y0 + length * sin;
 
   return (
     <g>
+      {/* Corpo do Ponteiro */}
       <path d={`M${xba} ${yba}L${xbb} ${ybb} L${xp} ${yp} Z`} fill={color} stroke="none" />
+      {/* Eixo Central Escuro */}
       <circle cx={x0} cy={y0} r={14} fill={color} stroke="none" />
+      {/* Parafuso/Furo Central Claro */}
       <circle cx={x0} cy={y0} r={5} fill="#F3F4F6" stroke="none" />
     </g>
   );
@@ -134,10 +137,10 @@ export function Dashboard() {
   const dadosEquipe = [
     { nome: 'Cordialidade', media: Number(calcularMediaItem('cordialidade')) },
     { nome: 'Informação', media: Number(calcularMediaItem('clareza')) },
-    { nome: 'Limpeza/Conforto', media: Number(calcularMediaItem('limpeza')) },
+    { nome: 'Limpeza', media: Number(calcularMediaItem('limpeza')) },
     { nome: 'Acessibilidade', media: Number(calcularMediaItem('acessibilidade')) },
-    { nome: 'Canais de Contato', media: Number(calcularMediaItem('contato')) },
-    { nome: 'Tempo de Espera', media: Number(calcularMediaItem('tempo')) },
+    { nome: 'Contato', media: Number(calcularMediaItem('contato')) },
+    { nome: 'Espera', media: Number(calcularMediaItem('tempo')) },
     { nome: 'Horários', media: Number(calcularMediaItem('horario')) },
   ].filter(item => item.media > 0).sort((a, b) => b.media - a.media); 
 
@@ -223,14 +226,14 @@ export function Dashboard() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           
-          {/* 1. O VELOCÍMETRO CORRIGIDO (OVERLAY ABSOLUTO) */}
+          {/* 1. O VELOCÍMETRO BLINDADO (CAMADAS ABSOLUTAS) */}
           <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 h-80 flex flex-col items-center relative group cursor-pointer">
             <div className="flex items-center gap-2 mb-2 w-full justify-center">
               <span className="text-xs font-black uppercase tracking-widest text-center">Lealdade e Reputação (NPS)</span>
               <span className="text-gray-400 bg-gray-100 rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold border border-gray-200">i</span>
             </div>
 
-            <div className="absolute top-14 z-20 invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-300 bg-gray-900 text-white p-4 rounded-lg shadow-2xl w-64 text-xs pointer-events-none border border-gray-700">
+            <div className="absolute top-14 z-30 invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-300 bg-gray-900 text-white p-4 rounded-lg shadow-2xl w-64 text-xs pointer-events-none border border-gray-700">
               <p className="font-black border-b border-gray-700 pb-2 mb-3 text-gray-300 uppercase tracking-wider text-[10px]">Entendendo as Zonas do NPS</p>
               <ul className="space-y-3">
                 <li className="flex gap-2"><span className="text-red-400 font-bold min-w-[70px]">-100 a 0:</span> <span>Zona Crítica</span></li>
@@ -240,30 +243,35 @@ export function Dashboard() {
               </ul>
             </div>
             
-            <div className="flex justify-center items-center w-full h-full relative mt-4">
-              {/* Camada 1: Fundo do Gráfico */}
-              <PieChart width={300} height={200}>
-                <Pie data={[{value: 200}]} cx={150} cy={140} startAngle={180} endAngle={0} innerRadius={60} outerRadius={68} dataKey="value" stroke="none" isAnimationActive={false}>
-                  <Cell fill="#E5E7EB" />
-                </Pie>
-                <Pie data={dataGauge} cx={150} cy={140} startAngle={180} endAngle={0} innerRadius={70} outerRadius={100} dataKey="value" stroke="none">
-                  {dataGauge.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
-                </Pie>
+            {/* CONTAINER DAS DUAS CAMADAS */}
+            <div className="relative w-[300px] h-[200px] mx-auto mt-4">
+              
+              {/* CAMADA 0: O Gráfico e as Notas (Fica no fundo) */}
+              <div className="absolute inset-0 z-0 flex justify-center items-center">
+                <PieChart width={300} height={200}>
+                  <Pie data={[{value: 200}]} cx={150} cy={140} startAngle={180} endAngle={0} innerRadius={60} outerRadius={68} dataKey="value" stroke="none" isAnimationActive={false}>
+                    <Cell fill="#E5E7EB" />
+                  </Pie>
+                  <Pie data={dataGauge} cx={150} cy={140} startAngle={180} endAngle={0} innerRadius={70} outerRadius={100} dataKey="value" stroke="none">
+                    {dataGauge.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                  </Pie>
 
-                <text x={35} y={145} fill="#6B7280" fontSize="11" fontWeight="bold" textAnchor="middle">-100</text>
-                <text x={150} y={20} fill="#6B7280" fontSize="11" fontWeight="bold" textAnchor="middle">0</text>
-                <text x={231} y={59} fill="#6B7280" fontSize="11" fontWeight="bold" textAnchor="middle">50</text>
-                <text x={265} y={145} fill="#6B7280" fontSize="11" fontWeight="bold" textAnchor="middle">100</text>
+                  <text x={35} y={145} fill="#6B7280" fontSize="11" fontWeight="bold" textAnchor="middle">-100</text>
+                  <text x={150} y={20} fill="#6B7280" fontSize="11" fontWeight="bold" textAnchor="middle">0</text>
+                  <text x={231} y={59} fill="#6B7280" fontSize="11" fontWeight="bold" textAnchor="middle">50</text>
+                  <text x={265} y={145} fill="#6B7280" fontSize="11" fontWeight="bold" textAnchor="middle">100</text>
 
-                <text x={150} y={185} fill={npsScore >= 50 ? '#10B981' : npsScore >= 0 ? '#FBBF24' : '#EF4444'} fontSize="38" fontWeight="900" textAnchor="middle">
-                  {npsScore}
-                </text>
-              </PieChart>
+                  <text x={150} y={185} fill={npsScore >= 50 ? '#10B981' : npsScore >= 0 ? '#FBBF24' : '#EF4444'} fontSize="38" fontWeight="900" textAnchor="middle">
+                    {npsScore}
+                  </text>
+                </PieChart>
+              </div>
 
-              {/* Camada 2: Ponteiro Flutuante com Sombra (Fica em cima de TUDO) */}
-              <svg width={300} height={200} className="absolute top-0 left-1/2 -translate-x-1/2 pointer-events-none drop-shadow-md">
+              {/* CAMADA 10: O Ponteiro Flutuante (Fica inquestionavelmente na frente) */}
+              <svg width={300} height={200} className="absolute inset-0 z-10 pointer-events-none drop-shadow-xl">
                 <Needle value={npsScore} cx={150} cy={140} oR={100} color="#1f2937" />
               </svg>
+
             </div>
           </div>
 
