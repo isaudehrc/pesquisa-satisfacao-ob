@@ -13,23 +13,33 @@ const Needle = ({ value, cx, cy, iR, oR, color }) => {
   const mappedValue = value + 100; // Converte para escala de 0 a 200
   const clampedValue = Math.max(0, Math.min(200, mappedValue)); // Trava o ponteiro
   const ang = 180.0 * (1 - clampedValue / total);
-  const length = (iR + 2 * oR) / 3;
+  const length = oR - 5; // A ponta vai quase até o fim da barra colorida
   const sin = Math.sin(-RADIAN * ang);
   const cos = Math.cos(-RADIAN * ang);
-  const r = 6;
+  
+  // Base do ponteiro (eixo)
   const x0 = cx;
   const y0 = cy;
+  
+  // Largura do ponteiro
+  const r = 10; 
   const xba = x0 + r * sin;
   const yba = y0 - r * cos;
   const xbb = x0 - r * sin;
   const ybb = y0 + r * cos;
+  
+  // Ponta do ponteiro
   const xp = x0 + length * cos;
   const yp = y0 + length * sin;
 
   return (
     <g>
-      <circle cx={x0} cy={y0} r={r} fill={color} stroke="none" />
-      <path d={`M${xba} ${yba}L${xbb} ${ybb} L${xp} ${yp} L${xba} ${yba}`} stroke="#none" fill={color} />
+      {/* Corpo do Ponteiro */}
+      <path d={`M${xba} ${yba}L${xbb} ${ybb} L${xp} ${yp} Z`} fill={color} stroke="none" />
+      {/* Eixo Central (Círculo maior escuro) */}
+      <circle cx={x0} cy={y0} r={14} fill={color} stroke="none" />
+      {/* Parafuso/Furo Central (Círculo menor claro) */}
+      <circle cx={x0} cy={y0} r={5} fill="#F3F4F6" stroke="none" />
     </g>
   );
 };
@@ -86,7 +96,7 @@ export function Dashboard() {
     return mapas[valor] || valor;
   };
 
-  // --- MOTOR HÍBRIDO: Converte texto antigo para número (1 a 5) ---
+  // --- MOTOR HÍBRIDO ---
   const getValorNumerico = (valor) => {
     if (!valor) return null;
     if (!isNaN(valor)) return Number(valor); 
@@ -136,7 +146,7 @@ export function Dashboard() {
     { nome: 'Horários', media: Number(calcularMediaItem('horario')) },
   ].filter(item => item.media > 0).sort((a, b) => b.media - a.media); 
 
-  // --- DEMOGRAFIA HÍBRIDA (Faixa Etária + Antiga Data Nascimento) ---
+  // --- DEMOGRAFIA HÍBRIDA ---
   const obterFaixaEtaria = (ficha) => {
     if (ficha.faixaEtaria) {
       const mapNomes = { '0-12': 'Até 12 anos', '13-17': '13 a 17 anos', '18-25': '18 a 25 anos', '26-40': '26 a 40 anos', '41-60': '41 a 60 anos', '60+': 'Mais de 60 anos' };
@@ -201,7 +211,7 @@ export function Dashboard() {
           </div>
         </div>
 
-        {/* RANKING OPERACIONAL (Dash dos Sonhos) */}
+        {/* RANKING OPERACIONAL */}
         {dadosEquipe.length > 0 && (
           <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 h-80 mb-6">
             <span className="block text-xs font-black uppercase tracking-widest mb-4 text-center">Desempenho Operacional (Média de 1 a 5)</span>
@@ -217,28 +227,52 @@ export function Dashboard() {
           </div>
         )}
 
-        {/* GRAFICOS COM OS NOVOS ESTILOS (GAUGE E PORCENTAGEM) */}
+        {/* GRAFICOS COM OS NOVOS ESTILOS */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           
-          {/* 1. VELOCÍMETRO NPS */}
-          <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 h-72 flex flex-col items-center relative">
-            <span className="text-xs font-black uppercase tracking-widest mb-2 text-center w-full">Lealdade (NPS)</span>
-            <div className="flex justify-center items-center w-full h-full relative">
-              <PieChart width={300} height={180}>
+          {/* 1. O NOVO VELOCÍMETRO (GAUGE) COM TOOLTIP DA GESTORA */}
+          <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 h-80 flex flex-col items-center relative group cursor-pointer">
+            <div className="flex items-center gap-2 mb-2 w-full justify-center">
+              <span className="text-xs font-black uppercase tracking-widest text-center">Lealdade e Reputação (NPS)</span>
+              <span className="text-gray-400 bg-gray-100 rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold border border-gray-200">i</span>
+            </div>
+
+            {/* O BALÃOZINHO EXPLICATIVO (TOOLTIP CUSTOMIZADO) */}
+            <div className="absolute top-14 z-20 invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-300 bg-gray-900 text-white p-4 rounded-lg shadow-2xl w-64 text-xs pointer-events-none border border-gray-700">
+              <p className="font-black border-b border-gray-700 pb-2 mb-3 text-gray-300 uppercase tracking-wider text-[10px]">Entendendo as Zonas do NPS</p>
+              <ul className="space-y-3">
+                <li className="flex gap-2"><span className="text-red-400 font-bold min-w-[70px]">-100 a 0:</span> <span>Zona Crítica</span></li>
+                <li className="flex gap-2"><span className="text-yellow-400 font-bold min-w-[70px]">1 a 50:</span> <span>Zona de Aperfeiçoamento</span></li>
+                <li className="flex gap-2"><span className="text-blue-400 font-bold min-w-[70px]">51 a 75:</span> <span>Zona de Qualidade</span></li>
+                <li className="flex gap-2"><span className="text-green-400 font-bold min-w-[70px]">76 a 100:</span> <span>Zona de Excelência</span></li>
+              </ul>
+            </div>
+            
+            <div className="flex justify-center items-center w-full h-full relative mt-4">
+              <PieChart width={300} height={200}>
+                <Pie data={[{value: 200}]} cx={150} cy={140} startAngle={180} endAngle={0} innerRadius={60} outerRadius={68} dataKey="value" stroke="none" isAnimationActive={false}>
+                  <Cell fill="#E5E7EB" />
+                </Pie>
                 <Pie data={dataGauge} cx={150} cy={140} startAngle={180} endAngle={0} innerRadius={70} outerRadius={100} dataKey="value" stroke="none">
                   {dataGauge.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
                 </Pie>
-                {/* A agulha do velocímetro sendo renderizada */}
-                <Needle value={npsScore} cx={150} cy={140} iR={70} oR={100} color="#1f2937" />
+
+                <text x={35} y={145} fill="#6B7280" fontSize="11" fontWeight="bold" textAnchor="middle">-100</text>
+                <text x={150} y={20} fill="#6B7280" fontSize="11" fontWeight="bold" textAnchor="middle">0</text>
+                <text x={231} y={59} fill="#6B7280" fontSize="11" fontWeight="bold" textAnchor="middle">50</text>
+                <text x={265} y={145} fill="#6B7280" fontSize="11" fontWeight="bold" textAnchor="middle">100</text>
+
+                <Needle value={npsScore} cx={150} cy={140} iR={70} oR={100} color="#374151" />
+
+                <text x={150} y={185} fill={npsScore >= 50 ? '#10B981' : npsScore >= 0 ? '#FBBF24' : '#EF4444'} fontSize="38" fontWeight="900" textAnchor="middle">
+                  {npsScore}
+                </text>
               </PieChart>
-              <div className="absolute bottom-6 w-full text-center flex flex-col items-center">
-                <span className={`text-4xl font-black tracking-tighter ${npsScore >= 50 ? 'text-green-500' : npsScore >= 0 ? 'text-yellow-500' : 'text-red-500'}`}>{npsScore}</span>
-              </div>
             </div>
           </div>
 
           {/* 2. ROSQUINHA COM PORCENTAGEM (Faixa Etária) */}
-          <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 h-72 flex flex-col items-center">
+          <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 h-80 flex flex-col items-center">
             <span className="text-xs font-black uppercase tracking-widest mb-2">Faixa Etária</span>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -261,7 +295,7 @@ export function Dashboard() {
           </div>
 
           {/* 3. DISTRIBUIÇÃO ESTRELAS */}
-          <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 h-72">
+          <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 h-80">
             <span className="block text-xs font-black uppercase tracking-widest mb-4 text-center">Volume de Estrelas</span>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={distribuicaoNotas} layout="vertical" margin={{ left: -10 }}><CartesianGrid strokeDasharray="3 3" horizontal={false} /><XAxis type="number" hide /><YAxis dataKey="nota" type="category" tick={{ fontSize: 10 }} width={40} /><Tooltip /><Bar dataKey="quantidade" fill="#1f2937" radius={[0, 4, 4, 0]} /></BarChart>
@@ -269,7 +303,7 @@ export function Dashboard() {
           </div>
         </div>
 
-        {/* TABELA LGPD (Sem nome e data exata) */}
+        {/* TABELA LGPD */}
         <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200">
           <div className="bg-gray-900 p-4 text-white text-xs font-bold uppercase tracking-widest">Base de Dados Anonimizada</div>
           <table className="w-full text-left text-sm">
@@ -290,7 +324,7 @@ export function Dashboard() {
         </div>
       </div>
 
-      {/* MODAL AJUSTADO (Visualização LGPD e Numérica) */}
+      {/* MODAL AJUSTADO MANTIDO */}
       {fichaAberta && (
         <div className="fixed inset-0 bg-gray-900 bg-opacity-80 z-50 flex justify-center items-center p-4 backdrop-blur-sm overflow-y-auto">
           <div className="bg-white max-w-2xl w-full rounded-xl shadow-2xl relative my-4 overflow-hidden border-t-8 border-gray-900">
@@ -299,7 +333,6 @@ export function Dashboard() {
               <h2 className="text-lg font-black uppercase tracking-widest">Detalhes da Avaliação</h2>
             </div>
             <div className="p-6 space-y-6">
-              
               <section>
                 <h3 className="text-md font-extrabold mb-3 border-l-4 border-gray-900 pl-2 text-black">1. Perfil do Usuário</h3>
                 <div className="grid grid-cols-2 gap-3 bg-gray-50 p-3 rounded-lg border border-gray-100">
