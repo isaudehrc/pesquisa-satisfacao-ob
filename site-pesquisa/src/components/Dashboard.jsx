@@ -8,37 +8,36 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 // --- MATEMÁTICA DO VELOCÍMETRO (GAUGE) E DA ROSQUINHA ---
 const RADIAN = Math.PI / 180;
 
-const Needle = ({ value, cx, cy, iR, oR, color }) => {
-  let total = 200; // Escala do NPS vai de -100 a +100 (range de 200)
-  const mappedValue = value + 100; // Converte para escala de 0 a 200
-  const clampedValue = Math.max(0, Math.min(200, mappedValue)); // Trava o ponteiro
+const Needle = ({ value, cx, cy, oR, color }) => {
+  let total = 200; // Escala do NPS vai de -100 a +100
+  const mappedValue = value + 100; 
+  const clampedValue = Math.max(0, Math.min(200, mappedValue)); 
   const ang = 180.0 * (1 - clampedValue / total);
-  const length = oR - 5; // A ponta vai quase até o fim da barra colorida
+  
+  // O ponteiro agora vai exatamente até a borda externa (outerRadius)
+  const length = oR; 
+  
   const sin = Math.sin(-RADIAN * ang);
   const cos = Math.cos(-RADIAN * ang);
   
-  // Base do ponteiro (eixo)
   const x0 = cx;
   const y0 = cy;
   
-  // Largura do ponteiro
-  const r = 10; 
+  // Base do ponteiro
+  const r = 8; 
   const xba = x0 + r * sin;
   const yba = y0 - r * cos;
   const xbb = x0 - r * sin;
   const ybb = y0 + r * cos;
   
-  // Ponta do ponteiro
+  // Ponta do ponteiro (Fina e longa como painel de carro)
   const xp = x0 + length * cos;
   const yp = y0 + length * sin;
 
   return (
     <g>
-      {/* Corpo do Ponteiro */}
       <path d={`M${xba} ${yba}L${xbb} ${ybb} L${xp} ${yp} Z`} fill={color} stroke="none" />
-      {/* Eixo Central (Círculo maior escuro) */}
       <circle cx={x0} cy={y0} r={14} fill={color} stroke="none" />
-      {/* Parafuso/Furo Central (Círculo menor claro) */}
       <circle cx={x0} cy={y0} r={5} fill="#F3F4F6" stroke="none" />
     </g>
   );
@@ -49,7 +48,7 @@ const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, per
   const x = cx + radius * Math.cos(-midAngle * RADIAN);
   const y = cy + radius * Math.sin(-midAngle * RADIAN);
   
-  if (percent < 0.05) return null; // Oculta a % se for uma fatia minúscula
+  if (percent < 0.05) return null; 
   
   return (
     <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" fontSize={11} fontWeight="bold" className="drop-shadow-md">
@@ -96,7 +95,6 @@ export function Dashboard() {
     return mapas[valor] || valor;
   };
 
-  // --- MOTOR HÍBRIDO ---
   const getValorNumerico = (valor) => {
     if (!valor) return null;
     if (!isNaN(valor)) return Number(valor); 
@@ -104,7 +102,6 @@ export function Dashboard() {
     return mapa[valor] || null; 
   };
 
-  // --- CÁLCULOS BI CALIBRADOS ---
   const mediaEstrelas = fichas.length > 0 
     ? (fichas.reduce((acc, ficha) => acc + Number(ficha.satisfacao_geral_estrelas || 0), 0) / fichas.length).toFixed(1)
     : 0;
@@ -114,11 +111,10 @@ export function Dashboard() {
   const neutros = fichas.length - promotores - detratores;
   const npsScore = fichas.length > 0 ? Math.round(((promotores - detratores) / fichas.length) * 100) : 0;
 
-  // Escala fixa do background do Velocímetro (NPS: -100 a 100)
   const dataGauge = [
-    { name: 'Crítico (-100 a 0)', value: 100, color: '#EF4444' }, // Vermelho
-    { name: 'Atenção (0 a 50)', value: 50, color: '#FBBF24' },   // Amarelo
-    { name: 'Excelência (50 a 100)', value: 50, color: '#10B981' } // Verde
+    { name: 'Crítico (-100 a 0)', value: 100, color: '#EF4444' }, 
+    { name: 'Atenção (0 a 50)', value: 50, color: '#FBBF24' },   
+    { name: 'Excelência (50 a 100)', value: 50, color: '#10B981' } 
   ];
 
   const distribuicaoNotas = [
@@ -129,7 +125,6 @@ export function Dashboard() {
     { nota: '1 ★', quantidade: fichas.filter(f => Number(f.satisfacao_geral_estrelas) === 1).length },
   ];
 
-  // --- O "DASH DOS SONHOS" (Ranking Operacional) ---
   const calcularMediaItem = (campo) => {
     const notasValidas = fichas.map(f => getValorNumerico(f[campo])).filter(v => v !== null);
     if (notasValidas.length === 0) return 0;
@@ -146,7 +141,6 @@ export function Dashboard() {
     { nome: 'Horários', media: Number(calcularMediaItem('horario')) },
   ].filter(item => item.media > 0).sort((a, b) => b.media - a.media); 
 
-  // --- DEMOGRAFIA HÍBRIDA ---
   const obterFaixaEtaria = (ficha) => {
     if (ficha.faixaEtaria) {
       const mapNomes = { '0-12': 'Até 12 anos', '13-17': '13 a 17 anos', '18-25': '18 a 25 anos', '26-40': '26 a 40 anos', '41-60': '41 a 60 anos', '60+': 'Mais de 60 anos' };
@@ -227,17 +221,15 @@ export function Dashboard() {
           </div>
         )}
 
-        {/* GRAFICOS COM OS NOVOS ESTILOS */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           
-          {/* 1. O NOVO VELOCÍMETRO (GAUGE) COM TOOLTIP DA GESTORA */}
+          {/* 1. O VELOCÍMETRO CORRIGIDO (OVERLAY ABSOLUTO) */}
           <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 h-80 flex flex-col items-center relative group cursor-pointer">
             <div className="flex items-center gap-2 mb-2 w-full justify-center">
               <span className="text-xs font-black uppercase tracking-widest text-center">Lealdade e Reputação (NPS)</span>
               <span className="text-gray-400 bg-gray-100 rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold border border-gray-200">i</span>
             </div>
 
-            {/* O BALÃOZINHO EXPLICATIVO (TOOLTIP CUSTOMIZADO) */}
             <div className="absolute top-14 z-20 invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-300 bg-gray-900 text-white p-4 rounded-lg shadow-2xl w-64 text-xs pointer-events-none border border-gray-700">
               <p className="font-black border-b border-gray-700 pb-2 mb-3 text-gray-300 uppercase tracking-wider text-[10px]">Entendendo as Zonas do NPS</p>
               <ul className="space-y-3">
@@ -249,6 +241,7 @@ export function Dashboard() {
             </div>
             
             <div className="flex justify-center items-center w-full h-full relative mt-4">
+              {/* Camada 1: Fundo do Gráfico */}
               <PieChart width={300} height={200}>
                 <Pie data={[{value: 200}]} cx={150} cy={140} startAngle={180} endAngle={0} innerRadius={60} outerRadius={68} dataKey="value" stroke="none" isAnimationActive={false}>
                   <Cell fill="#E5E7EB" />
@@ -262,16 +255,19 @@ export function Dashboard() {
                 <text x={231} y={59} fill="#6B7280" fontSize="11" fontWeight="bold" textAnchor="middle">50</text>
                 <text x={265} y={145} fill="#6B7280" fontSize="11" fontWeight="bold" textAnchor="middle">100</text>
 
-                <Needle value={npsScore} cx={150} cy={140} iR={70} oR={100} color="#374151" />
-
                 <text x={150} y={185} fill={npsScore >= 50 ? '#10B981' : npsScore >= 0 ? '#FBBF24' : '#EF4444'} fontSize="38" fontWeight="900" textAnchor="middle">
                   {npsScore}
                 </text>
               </PieChart>
+
+              {/* Camada 2: Ponteiro Flutuante com Sombra (Fica em cima de TUDO) */}
+              <svg width={300} height={200} className="absolute top-0 left-1/2 -translate-x-1/2 pointer-events-none drop-shadow-md">
+                <Needle value={npsScore} cx={150} cy={140} oR={100} color="#1f2937" />
+              </svg>
             </div>
           </div>
 
-          {/* 2. ROSQUINHA COM PORCENTAGEM (Faixa Etária) */}
+          {/* 2. ROSQUINHA COM PORCENTAGEM */}
           <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 h-80 flex flex-col items-center">
             <span className="text-xs font-black uppercase tracking-widest mb-2">Faixa Etária</span>
             <ResponsiveContainer width="100%" height="100%">
