@@ -186,22 +186,33 @@ export function Dashboard() {
           <button onClick={handleSair} className="bg-red-50 text-red-600 px-4 py-2 rounded font-bold hover:bg-red-100 text-[10px] uppercase border border-red-100">Sair</button>
         </div>
 
+        {/* OS 4 KPIs EXECUTIVOS ATUALIZADOS */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
           <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 flex flex-col items-center">
-            <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-2">Total Avaliações</span>
+            <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-2">Total de Avaliações</span>
             <span className="text-5xl font-black">{fichas.length}</span>
           </div>
+          
           <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 flex flex-col items-center">
-            <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-2">Score NPS</span>
+            <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-2">Lealdade (NPS)</span>
             <span className={`text-5xl font-black ${npsScore >= 50 ? 'text-green-500' : npsScore >= 0 ? 'text-yellow-500' : 'text-red-500'}`}>{npsScore}</span>
           </div>
-          <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 flex flex-col items-center">
-            <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-2">Média Estrelas</span>
+
+          <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 flex flex-col items-center relative group">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">Satisfação Geral Média</span>
+              <span className="text-gray-300 bg-gray-50 rounded-full w-4 h-4 flex items-center justify-center text-[8px] font-bold border border-gray-100 cursor-pointer">i</span>
+            </div>
+            {/* Balão explicativo escondido */}
+            <div className="absolute top-10 z-20 invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-300 bg-gray-900 text-white p-3 rounded shadow-xl text-[10px] text-center w-48 pointer-events-none">
+              De modo geral, como o usuário avalia a experiência no CEO-OB.
+            </div>
             <div className="flex items-baseline gap-2">
               <span className="text-5xl font-black text-yellow-500">{mediaEstrelas}</span>
               <span className="text-xl text-yellow-500">★</span>
             </div>
           </div>
+
           <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 flex flex-col items-center text-center">
             <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-2">Público Dominante</span>
             <span className="text-xl font-black text-blue-600 uppercase leading-tight">{perfilPrincipal}</span>
@@ -246,7 +257,7 @@ export function Dashboard() {
             {/* CONTAINER DAS DUAS CAMADAS */}
             <div className="relative w-[300px] h-[200px] mx-auto mt-4">
               
-              {/* CAMADA 0: O Gráfico e as Notas (Fica no fundo) */}
+              {/* CAMADA 0: O Gráfico e as Notas */}
               <div className="absolute inset-0 z-0 flex justify-center items-center">
                 <PieChart width={300} height={200}>
                   <Pie data={[{value: 200}]} cx={150} cy={140} startAngle={180} endAngle={0} innerRadius={60} outerRadius={68} dataKey="value" stroke="none" isAnimationActive={false}>
@@ -267,7 +278,7 @@ export function Dashboard() {
                 </PieChart>
               </div>
 
-              {/* CAMADA 10: O Ponteiro Flutuante (Fica inquestionavelmente na frente) */}
+              {/* CAMADA 10: O Ponteiro Flutuante */}
               <svg width={300} height={200} className="absolute inset-0 z-10 pointer-events-none drop-shadow-xl">
                 <Needle value={npsScore} cx={150} cy={140} oR={100} color="#1f2937" />
               </svg>
