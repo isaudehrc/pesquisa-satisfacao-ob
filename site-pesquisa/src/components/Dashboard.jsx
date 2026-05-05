@@ -128,7 +128,7 @@ export function Dashboard() {
     { nome: 'Horários', media: Number(calcularMediaItem('horario')) },
   ].filter(item => item.media > 0).sort((a, b) => b.media - a.media); 
 
-  // --- 3. CÁLCULOS CLÍNICOS (O Novo "Payload") ---
+  // --- 3. CÁLCULOS CLÍNICOS ---
   const resolucao = { resolvido: 0, parcial: 0, nao: 0 };
   const compreensao = { sim: 0, parcial: 0, nao: 0 };
   
@@ -172,17 +172,14 @@ export function Dashboard() {
   let respondentes = { paciente: 0, responsavel: 0 };
 
   fichas.forEach(f => {
-    // Faixa Etaria
     const faixa = obterFaixaEtaria(f);
     if (faixa !== 'N/I') { faixasCount[faixa] = (faixasCount[faixa] || 0) + 1; }
     
-    // Gênero
     const gen = String(f.sexo || f.genero || '').toLowerCase();
     if (gen.includes('masc')) generos.masc++;
     else if (gen.includes('fem')) generos.fem++;
     else generos.outro++;
 
-    // Tipo de Respondente (Quem responde)
     const resp = String(f.quem_responde || f.tipo_respondente || f.respondente || '').toLowerCase();
     if (resp.includes('responsável') || resp.includes('responsavel') || resp.includes('familiar')) respondentes.responsavel++;
     else respondentes.paciente++;
@@ -224,23 +221,33 @@ export function Dashboard() {
             <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-2">Total de Avaliações</span>
             <span className="text-5xl font-black">{fichas.length}</span>
           </div>
+          
           <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 flex flex-col items-center">
             <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-2">Lealdade (NPS)</span>
             <span className={`text-5xl font-black ${npsScore >= 50 ? 'text-green-500' : npsScore >= 0 ? 'text-yellow-500' : 'text-red-500'}`}>{npsScore}</span>
           </div>
+
           <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 flex flex-col items-center relative group">
             <div className="flex items-center gap-2 mb-2">
               <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">Satisfação Média</span>
               <span className="text-gray-300 bg-gray-50 rounded-full w-4 h-4 flex items-center justify-center text-[8px] font-bold border border-gray-100 cursor-pointer">i</span>
             </div>
-            <div className="absolute top-10 z-20 invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-300 bg-gray-900 text-white p-3 rounded shadow-xl text-[10px] text-center w-48 pointer-events-none">
-              De modo geral, como o usuário avalia a experiência no CEO-OB.
+            {/* NOVO BALÃO EXPLICATIVO PADRONIZADO (ZONAS DE SATISFAÇÃO) */}
+            <div className="absolute top-10 z-30 invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-300 bg-gray-900 text-white p-4 rounded-lg shadow-2xl w-64 text-xs pointer-events-none border border-gray-700">
+              <p className="font-black border-b border-gray-700 pb-2 mb-3 text-gray-300 uppercase tracking-wider text-[10px]">Zonas de Satisfação (1 a 5)</p>
+              <ul className="space-y-3">
+                <li className="flex gap-2"><span className="text-red-400 font-bold min-w-[70px]">1.0 a 2.9:</span> <span>Zona Crítica</span></li>
+                <li className="flex gap-2"><span className="text-yellow-400 font-bold min-w-[70px]">3.0 a 3.9:</span> <span>Aperfeiçoamento</span></li>
+                <li className="flex gap-2"><span className="text-blue-400 font-bold min-w-[70px]">4.0 a 4.5:</span> <span>Qualidade</span></li>
+                <li className="flex gap-2"><span className="text-green-400 font-bold min-w-[70px]">4.6 a 5.0:</span> <span>Excelência</span></li>
+              </ul>
             </div>
-            <div className="flex items-baseline gap-2">
+            <div className="flex items-baseline gap-2 mt-2">
               <span className="text-5xl font-black text-yellow-500">{mediaEstrelas}</span>
               <span className="text-xl text-yellow-500">★</span>
             </div>
           </div>
+
           <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 flex flex-col items-center text-center">
             <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-2">Público Dominante</span>
             <span className="text-xl font-black text-blue-600 uppercase leading-tight">{perfilPrincipal}</span>
